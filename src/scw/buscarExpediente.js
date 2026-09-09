@@ -43,14 +43,33 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
   // cambiar) — más robusto reintentar la secuencia completa una vez que
   // tratar de blindar línea por línea a ciegas.
   async function completarFormulario() {
+    const htmlAntes = await page.evaluate(() => document.body ? document.body.innerHTML.length : 0).catch(() => 0);
     await page.locator('select[name="formPublica:camaraNumAni"]').selectOption(valorJurisdiccion);
     await page.waitForTimeout(150);
     await page.locator('input[name="formPublica:numero"]').fill(String(numero));
     await page.locator('input[name="formPublica:anio"]').fill(String(anio));
-    await Promise.all([
-      page.waitForLoadState('networkidle'),
-      page.locator('input[name="formPublica:buscarPorNumeroButton"]').click(),
-    ]);
+    await page.locator('input[name="formPublica:buscarPorNumeroButton"]').click();
+    // No confiamos en 'networkidle' acá: el submit real (después del
+    // spinner "Consulta en proceso") puede arrancar recién un instante
+    // después del click, y networkidle puede resolver de entrada porque
+    // en ese primer instante todavía no hay nada en vuelo. En cambio,
+    // esperamos activamente a que la página haya cambiado de verdad
+    // respecto de cómo estaba antes de tocar "Consultar" (comparar contra
+    // un umbral fijo de texto no alcanza: home.seam ya tiene de por sí
+    // bastante texto de header/menú/footer).
+    await esperarPaginaCambiada(htmlAntes);
+  }
+
+  async function esperarPaginaCambiada(htmlAntes, timeoutMs = 20000) {
+    const inicio = Date.now();
+    while (Date.now() - inicio < timeoutMs) {
+      const largoActual = await page.evaluate(() => document.body ? document.body.innerHTML.length : 0).catch(() => 0);
+      // Umbral de diferencia (no solo "distinto") para no reaccionar a
+      // cambios triviales de una animación o el propio spinner apareciendo.
+      if (Math.abs(largoActual - htmlAntes) > 200) return true;
+      await page.waitForTimeout(300);
+    }
+    return false;
   }
 
   try {
@@ -68,11 +87,6 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
       console.warn('[buscarExpediente] Segunda carrera, se continúa igual y se verifica el estado de la página:', err2.message);
     }
   }
-  // Margen extra: el submit de JSF es una navegación de página completa (no
-  // un fetch/XHR puro) — 'networkidle' puede resolver en el instante justo
-  // en que el documento viejo ya se descartó pero el nuevo todavía no
-  // terminó de armar el DOM, dejando document.body momentáneamente null.
-  await page.waitForTimeout(400);
 
   // Verificación de contenido real: un cid= en la URL no alcanza como señal
   // de éxito — páginas de error/redirect genéricas del SCW también pueden
