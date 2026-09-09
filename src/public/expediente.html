@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expediente — Infocivil Ebook</title>
+<link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-contenido">
+    <svg class="escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <path d="M12 3v18M7 7h10M5 7l-2.5 6a3.5 3.5 0 0 0 5 0L5 7zM19 7l-2.5 6a3.5 3.5 0 0 0 5 0L19 7z"/>
+      <path d="M8 21h8"/>
+    </svg>
+    <div>
+      <div class="barra-titulo">Infocivil Ebook</div>
+      <div class="barra-sub">Poder Judicial de la Nación · Cámara Civil</div>
+    </div>
+    <div class="barra-acciones">
+      <a class="barra-link" href="/">Nueva consulta</a>
+    </div>
+  </div>
+</header>
+
+<main class="ancho">
+  <div id="cargando" class="cargando-exp">Leyendo el expediente en el SCW… esto puede demorar un minuto en expedientes grandes.</div>
+
+  <div id="contenido" hidden>
+    <div class="exp-cabecera">
+      <div class="exp-id" id="expId"></div>
+      <h1 class="exp-caratula" id="expCaratula"></h1>
+      <div class="exp-meta" id="expMeta"></div>
+    </div>
+
+    <div id="avisos"></div>
+
+    <div class="acciones">
+      <button class="accion" data-formato="zip">
+        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6l2 3h6a2 2 0 0 1 2 2z"/>
+          <path d="M12 11v5M10 13h4"/>
+        </svg>
+        <span class="accion-titulo">Descargar ZIP</span>
+        <span class="accion-desc">Todas las actuaciones como archivos PDF separados, comprimidas.</span>
+      </button>
+
+      <button class="accion" data-formato="unificado">
+        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6"/>
+        </svg>
+        <span class="accion-titulo">PDF unificado</span>
+        <span class="accion-desc">Un solo PDF con todo el expediente, sin índice ni enlaces. Para remitir a otra jurisdicción.</span>
+      </button>
+
+      <button class="accion" data-formato="unificado-indice">
+        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6"/>
+          <path d="M8 13h8M8 17h5"/>
+        </svg>
+        <span class="accion-titulo">PDF unificado con índice</span>
+        <span class="accion-desc">Con portada, índice hipervinculado y el enlace público del SCW al pie de cada página.</span>
+      </button>
+
+      <button class="accion accion--destacada" id="btnEbook">
+        <span class="accion-nuevo">Nuevo</span>
+        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        <span class="accion-titulo">Leer como libro</span>
+        <span class="accion-desc">Lectura tipo expediente en papel, con banderitas y anotaciones.</span>
+      </button>
+    </div>
+
+    <div id="estado" class="estado" role="status" aria-live="polite"></div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const cid = params.get('cid');
+const sessionId = params.get('sessionId');
+const jurisdiccion = params.get('jurisdiccion') || '';
+const numero = params.get('numero') || '';
+const anio = params.get('anio') || '';
+
+const estado = $('estado');
+function mostrarEstado(texto, tipo) {
+  estado.textContent = texto || '';
+  estado.className = 'estado' + (tipo ? ' estado--' + tipo : '');
+}
+
+if (!cid || !sessionId) {
+  location.href = '/';
+}
+
+let datosExpediente = null;
+
+async function cargarExpediente() {
+  try {
+    const r = await fetch(`/api/expediente/${encodeURIComponent(cid)}/actuaciones?sessionId=${encodeURIComponent(sessionId)}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'No se pudieron leer las actuaciones.');
+    datosExpediente = d;
+
+    $('expId').textContent = `${jurisdiccion} ${numero}/${anio}`;
+    $('expCaratula').textContent = d.caratula || `Expediente ${cid}`;
+    $('expMeta').textContent = `${d.actuaciones.length} actuaciones`;
+
+    const avisos = [];
+    if (d.paginacionIncompleta) {
+      avisos.push('El recorrido de páginas se cortó antes de tiempo (demora del sistema). Pueden faltar actuaciones más viejas. Conviene volver a consultar el expediente.');
+    }
+    if (d.historicasEstado === 'timeout') {
+      avisos.push('No se pudo determinar si este expediente tiene actuaciones históricas.');
+    }
+    $('avisos').innerHTML = avisos.map(a => `<div class="aviso">${a}</div>`).join('');
+
+    $('cargando').hidden = true;
+    $('contenido').hidden = false;
+  } catch (e) {
+    $('cargando').textContent = e.message + ' — Probá hacer una nueva consulta.';
+  }
+}
+cargarExpediente();
+
+// Las descargas se disparan navegando a la URL del endpoint: el servidor
+// responde con Content-Disposition: attachment, así que el navegador la
+// maneja como una descarga normal (con su propia barra de progreso, y sin
+// cargar 70+ MB en memoria del lado de JS).
+document.querySelectorAll('.accion[data-formato]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const formato = btn.dataset.formato;
+    mostrarEstado('Preparando la descarga… el archivo puede tardar varios minutos en expedientes grandes. No cierres esta pestaña.', 'cargando');
+    location.href = `/api/expediente/${encodeURIComponent(cid)}/descargar/${formato}?sessionId=${encodeURIComponent(sessionId)}`;
+  });
+});
+
+$('btnEbook').addEventListener('click', () => {
+  const p = new URLSearchParams({ cid, sessionId, jurisdiccion, numero, anio });
+  location.href = '/leer.html?' + p.toString();
+});
+</script>
+</body>
+</html>

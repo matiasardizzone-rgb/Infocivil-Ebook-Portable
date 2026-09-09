@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infocivil Ebook — Consulta de expedientes</title>
+<link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-contenido">
+    <svg class="escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <path d="M12 3v18M7 7h10M5 7l-2.5 6a3.5 3.5 0 0 0 5 0L5 7zM19 7l-2.5 6a3.5 3.5 0 0 0 5 0L19 7z"/>
+      <path d="M8 21h8"/>
+    </svg>
+    <div>
+      <div class="barra-titulo">Infocivil Ebook</div>
+      <div class="barra-sub">Poder Judicial de la Nación · Cámara Civil</div>
+    </div>
+  </div>
+</header>
+
+<main class="centro">
+  <div class="tarjeta">
+    <h1 class="tarjeta-titulo">Consulta de expediente</h1>
+    <p class="tarjeta-ayuda">Ingresá los datos del expediente tal como figuran en el Sistema de Consulta Web.</p>
+
+    <form id="formBuscar" novalidate>
+      <label class="etiqueta" for="jurisdiccion">Jurisdicción</label>
+      <select id="jurisdiccion" class="control" required>
+        <option value="">Cargando jurisdicciones…</option>
+      </select>
+
+      <label class="etiqueta" for="numero">Número / Año</label>
+      <div class="fila-numero">
+        <input id="numero" class="control" type="text" inputmode="numeric" maxlength="9" placeholder="12345" required>
+        <span class="barra-diagonal">/</span>
+        <input id="anio" class="control" type="text" inputmode="numeric" maxlength="4" placeholder="2021" required>
+      </div>
+
+      <button id="btnConsultar" class="boton-primario" type="submit">Consultar</button>
+    </form>
+
+    <div id="estado" class="estado" role="status" aria-live="polite"></div>
+  </div>
+
+  <p class="pie-nota">
+    Los expedientes se consultan en tiempo real desde
+    <strong>scw.pjn.gov.ar</strong>. Este servicio no almacena expedientes.
+  </p>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const estado = $('estado');
+
+function mostrarEstado(texto, tipo) {
+  estado.textContent = texto || '';
+  estado.className = 'estado' + (tipo ? ' estado--' + tipo : '');
+}
+
+async function cargarJurisdicciones() {
+  try {
+    const r = await fetch('/api/jurisdicciones');
+    const lista = await r.json();
+    const sel = $('jurisdiccion');
+    sel.innerHTML = '<option value="">Seleccione una jurisdicción</option>';
+    for (const j of lista) {
+      const o = document.createElement('option');
+      o.value = j.sigla;
+      o.textContent = j.sigla + ' - ' + j.nombre;
+      // El fuero Civil es el caso de uso principal de esta herramienta.
+      if (j.sigla === 'CIV') o.selected = true;
+      sel.appendChild(o);
+    }
+  } catch (e) {
+    mostrarEstado('No se pudieron cargar las jurisdicciones. Recargá la página.', 'error');
+  }
+}
+cargarJurisdicciones();
+
+$('formBuscar').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const jurisdiccion = $('jurisdiccion').value.trim();
+  const numero = $('numero').value.trim();
+  const anio = $('anio').value.trim();
+
+  if (!jurisdiccion) return mostrarEstado('Elegí una jurisdicción.', 'error');
+  if (!numero || !anio) return mostrarEstado('Completá número y año.', 'error');
+
+  $('btnConsultar').disabled = true;
+  mostrarEstado('Buscando el expediente en el SCW… puede demorar unos segundos.', 'cargando');
+
+  try {
+    const r = await fetch('/api/buscar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jurisdiccion, numero, anio }),
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'No se pudo completar la búsqueda.');
+
+    const params = new URLSearchParams({
+      cid: data.cid,
+      sessionId: data.sessionId,
+      jurisdiccion, numero, anio,
+    });
+    location.href = '/expediente.html?' + params.toString();
+  } catch (e) {
+    mostrarEstado(e.message, 'error');
+    $('btnConsultar').disabled = false;
+  }
+});
+</script>
+</body>
+</html>

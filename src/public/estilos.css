@@ -1,0 +1,210 @@
+/* estilos.css — identidad visual de Infocivil Ebook.
+   Estética institucional sobria, en la línea del propio SCW (header azul
+   oscuro con franja de acento), pensada para uso judicial diario. */
+
+:root {
+  --azul-oscuro: #1a3a6b;
+  --azul: #1e5ba8;
+  --azul-claro: #2e80d8;
+  --azul-palido: #e8f0fb;
+  --borde: #c8d8ec;
+  --borde-suave: #dbe6f2;
+  --fondo: #f0f4f8;
+  --texto: #1c2b3f;
+  --texto-suave: #3a5070;
+  --texto-tenue: #6b7f99;
+  --blanco: #fff;
+  --error: #b3261e;
+  --error-fondo: #fdecea;
+  --ok: #1a7a4a;
+  --aviso-fondo: #fff3d1;
+  --aviso-borde: #e8d080;
+  --aviso-texto: #6b5000;
+  --radio: 8px;
+  --sombra: 0 1px 3px rgba(26, 58, 107, .12), 0 4px 12px rgba(26, 58, 107, .06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ─── Barra superior ─────────────────────────────────────────────── */
+.barra {
+  background: var(--azul-oscuro);
+  border-bottom: 3px solid var(--azul-claro);
+  color: var(--blanco);
+}
+.barra-contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.escudo { width: 28px; height: 28px; flex-shrink: 0; color: #a8c4e8; }
+.barra-titulo { font-size: 17px; font-weight: 600; line-height: 1.2; }
+.barra-sub {
+  font-size: 10px; color: #a8c4e8;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.barra-acciones { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.barra-link {
+  color: #cfe0f6; text-decoration: none; font-size: 13px;
+  padding: 6px 10px; border-radius: 6px;
+}
+.barra-link:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+/* ─── Layout ─────────────────────────────────────────────────────── */
+.centro {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+.ancho {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.tarjeta {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 26px;
+}
+.tarjeta-titulo { font-size: 19px; font-weight: 600; margin-bottom: 6px; }
+.tarjeta-ayuda { font-size: 13px; color: var(--texto-suave); margin-bottom: 20px; }
+
+/* ─── Formulario ─────────────────────────────────────────────────── */
+.etiqueta {
+  display: block;
+  font-size: 13px; font-weight: 600;
+  color: var(--texto-suave);
+  margin-bottom: 5px;
+}
+.control {
+  width: 100%;
+  padding: 9px 11px;
+  font-size: 14px; font-family: inherit; color: var(--texto);
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+}
+.control:focus {
+  outline: none;
+  border-color: var(--azul-claro);
+  box-shadow: 0 0 0 3px rgba(46,128,216,.18);
+}
+select.control { margin-bottom: 16px; cursor: pointer; }
+.fila-numero { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.barra-diagonal { color: var(--texto-tenue); font-size: 16px; }
+
+.boton-primario {
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  color: var(--blanco); background: var(--azul);
+  border: none; border-radius: 6px; cursor: pointer;
+  transition: background .15s;
+}
+.boton-primario:hover:not(:disabled) { background: var(--azul-oscuro); }
+.boton-primario:disabled { opacity: .5; cursor: default; }
+
+/* ─── Estado / mensajes ──────────────────────────────────────────── */
+.estado {
+  margin-top: 16px;
+  font-size: 13px; line-height: 1.5;
+  padding: 0;
+}
+.estado:empty { display: none; }
+.estado--cargando {
+  color: var(--texto-suave);
+  background: var(--azul-palido);
+  border: 1px solid var(--borde);
+  border-radius: 6px; padding: 10px 12px;
+}
+.estado--error {
+  color: var(--error);
+  background: var(--error-fondo);
+  border: 1px solid #f5c6c2;
+  border-radius: 6px; padding: 10px 12px;
+}
+.estado--ok {
+  color: var(--ok);
+  background: #e8f8ee;
+  border: 1px solid #b8e0c8;
+  border-radius: 6px; padding: 10px 12px;
+}
+
+.aviso {
+  background: var(--aviso-fondo);
+  border: 1px solid var(--aviso-borde);
+  color: var(--aviso-texto);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.pie-nota {
+  margin-top: 20px;
+  font-size: 11.5px; color: var(--texto-tenue);
+  text-align: center; line-height: 1.6;
+}
+
+/* ─── Encabezado del expediente ──────────────────────────────────── */
+.exp-cabecera { margin-bottom: 22px; }
+.exp-id {
+  font-size: 12px; color: var(--texto-tenue);
+  letter-spacing: .3px; margin-bottom: 3px;
+}
+.exp-caratula {
+  font-size: 17px; font-weight: 600; line-height: 1.35;
+  color: var(--texto);
+}
+.exp-meta { font-size: 13px; color: var(--texto-suave); margin-top: 8px; }
+
+/* ─── Grilla de acciones ─────────────────────────────────────────── */
+.acciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.accion {
+  display: flex; flex-direction: column;
+  text-align: left;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 18px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--sombra);
+  transition: border-color .15s, transform .1s;
+}
+.accion:hover:not(:disabled) { border-color: var(--azul-claro); transform: translateY(-1px); }
+.accion:disabled { opacity: .55; cursor: default; }
+.accion--destacada { border: 2px solid var(--azul-claro); position: relative; }
+.accion-icono { width: 24px; height: 24px; color: var(--azul); margin-bottom: 10px; }
+.accion-titulo { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; color: var(--texto); }
+.accion-desc { font-size: 12.5px; color: var(--texto-suave); line-height: 1.45; }
+.accion-nuevo {
+  position: absolute; top: -9px; left: 14px;
+  background: var(--azul-claro); color: var(--blanco);
+  font-size: 10.5px; font-weight: 600;
+  padding: 2px 9px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: .4px;
+}
+
+.cargando-exp {
+  text-align: center; padding: 60px 20px;
+  color: var(--texto-suave); font-size: 14px;
+}
