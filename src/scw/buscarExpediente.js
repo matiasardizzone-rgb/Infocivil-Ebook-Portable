@@ -36,24 +36,37 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
 
   await page.goto(`${scwBase}/scw/home.seam`, { waitUntil: 'networkidle' });
 
-  await page.locator('select[name="formPublica:camaraNumAni"]').selectOption(valorJurisdiccion);
-  await page.locator('input[name="formPublica:numero"]').fill(String(numero));
-  await page.locator('input[name="formPublica:anio"]').fill(String(anio));
-
-  try {
+  // Toda la interacción con el formulario en un solo bloque reintentable:
+  // no sabemos con certeza en qué paso exacto puede pisarnos una carrera de
+  // Playwright con algún JS del propio formulario (el <select> de
+  // jurisdicción bien podría disparar un postback parcial de JSF al
+  // cambiar) — más robusto reintentar la secuencia completa una vez que
+  // tratar de blindar línea por línea a ciegas.
+  async function completarFormulario() {
+    await page.locator('select[name="formPublica:camaraNumAni"]').selectOption(valorJurisdiccion);
+    await page.waitForTimeout(150);
+    await page.locator('input[name="formPublica:numero"]').fill(String(numero));
+    await page.locator('input[name="formPublica:anio"]').fill(String(anio));
     await Promise.all([
       page.waitForLoadState('networkidle'),
       page.locator('input[name="formPublica:buscarPorNumeroButton"]').click(),
     ]);
+  }
+
+  try {
+    await completarFormulario();
   } catch (err) {
-    // Carrera conocida de Playwright: el submit de este formulario dispara
-    // una navegación de página completa, y a veces empieza antes de que el
-    // propio chequeo interno de "actionability" del click() termine — tira
-    // un error que no refleja un fallo real (el click sí se disparó y la
-    // navegación sí ocurrió). La seguimos verificando más abajo con
-    // pareceExpedienteReal()/cid en la URL, así que acá alcanza con no
-    // abortar por esto.
-    console.warn('[buscarExpediente] Ignorando posible carrera durante el click de Consultar:', err.message);
+    console.warn('[buscarExpediente] Carrera al completar el formulario, reintentando una vez:', err.message);
+    await page.waitForTimeout(600);
+    try {
+      await completarFormulario();
+    } catch (err2) {
+      // Ni con el reintento — seguimos igual: lo que importa es el estado
+      // final de la página, que se verifica más abajo (pareceExpedienteReal
+      // / cid en la URL / búsqueda de links). Si de verdad no funcionó, esas
+      // verificaciones lo van a reflejar con un error más útil que este.
+      console.warn('[buscarExpediente] Segunda carrera, se continúa igual y se verifica el estado de la página:', err2.message);
+    }
   }
   // Margen extra: el submit de JSF es una navegación de página completa (no
   // un fetch/XHR puro) — 'networkidle' puede resolver en el instante justo
