@@ -1,0 +1,249 @@
+/* lector.css — estética de expediente en papel para la lectura tipo libro.
+   Tonos cálidos (a diferencia del azul institucional del resto del sitio),
+   porque acá el objetivo es que se parezca al expediente de papel. */
+
+:root {
+  --papel: #fdfcf8;
+  --papel-borde: #e0d9c8;
+  --papel-sombra: rgba(60, 45, 20, .18);
+  --mesa: #4a4034;
+  --mesa-clara: #5c5044;
+}
+
+.cuerpo-lector {
+  background: var(--mesa);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.barra--lector { flex-shrink: 0; }
+.barra--lector .barra-contenido { max-width: none; gap: 14px; }
+
+.boton-barra {
+  background: rgba(255,255,255,.1);
+  border: none; border-radius: 6px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #cfe0f6; flex-shrink: 0;
+}
+.boton-barra:hover { background: rgba(255,255,255,.2); color: #fff; }
+.boton-barra svg { width: 18px; height: 18px; }
+
+.lector-titulo { min-width: 0; flex: 1; }
+.lector-exp { font-size: 11px; color: #a8c4e8; letter-spacing: .3px; }
+.lector-caratula {
+  font-size: 13.5px; color: #fff; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 60ch;
+}
+.lector-posicion { font-size: 12px; color: #cfe0f6; white-space: nowrap; }
+
+/* ─── Marco general ──────────────────────────────────────────────── */
+.lector-marco {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+/* ─── Panel de índice ────────────────────────────────────────────── */
+.panel-indice {
+  width: 300px; flex-shrink: 0;
+  background: #f5f2ea;
+  border-right: 1px solid var(--papel-borde);
+  display: flex; flex-direction: column;
+  transition: margin-left .22s ease;
+}
+.panel-indice[hidden], .panel-indice.oculto { margin-left: -300px; }
+.panel-indice-cabecera { padding: 12px; border-bottom: 1px solid var(--papel-borde); }
+.panel-indice-lista { flex: 1; overflow-y: auto; padding: 6px; }
+
+.control--chico { padding: 7px 10px; font-size: 13px; }
+
+.indice-item {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; font-family: inherit;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  border-left: 3px solid transparent;
+  margin-bottom: 2px;
+}
+.indice-item:hover { background: #eae5d8; }
+.indice-item--actual { background: #e6ecf5; border-left-color: var(--azul); }
+.indice-num { font-size: 10.5px; color: #8a7f6d; font-weight: 600; }
+.indice-tipo { font-size: 12px; font-weight: 600; color: #3a3226; line-height: 1.3; }
+.indice-desc {
+  font-size: 11.5px; color: #6b6252; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.indice-fecha { font-size: 10.5px; color: #8a7f6d; margin-top: 2px; }
+.indice-punto {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: 5px; vertical-align: middle;
+}
+
+/* ─── Escenario del libro ────────────────────────────────────────── */
+.escenario {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 22px 46px 22px 22px;
+  perspective: 2200px;
+  position: relative;
+  min-width: 0;
+}
+
+.libro {
+  display: flex;
+  height: 100%;
+  max-height: 100%;
+  position: relative;
+  gap: 0;
+}
+
+.hoja {
+  background: var(--papel);
+  position: relative;
+  display: flex; flex-direction: column;
+  width: 46vh; max-width: 44vw;
+  box-shadow: 0 2px 14px var(--papel-sombra);
+}
+.hoja--izq { border-radius: 4px 0 0 4px; border-right: 1px solid #ded6c4; }
+.hoja--der { border-radius: 0 4px 4px 0; }
+/* En una sola página (pantalla angosta), la hoja izquierda se oculta. */
+.libro.una-pagina .hoja--izq { display: none; }
+.libro.una-pagina .hoja--der { border-radius: 4px; }
+
+.hoja-encabezado {
+  padding: 9px 14px 7px;
+  border-bottom: 1px solid #ece5d6;
+  font-size: 11px; color: #6b6252;
+  line-height: 1.35;
+  flex-shrink: 0;
+}
+.hoja-encabezado strong { color: #3a3226; font-weight: 600; display: block; font-size: 11.5px; }
+
+.hoja-lienzo {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  padding: 8px;
+  min-height: 0;
+}
+.hoja-lienzo canvas { max-width: 100%; max-height: 100%; display: block; }
+
+.hoja-pie {
+  padding: 6px 14px 9px;
+  border-top: 1px solid #ece5d6;
+  font-size: 9.5px; color: #8a7f6d;
+  text-align: center;
+  flex-shrink: 0;
+  word-break: break-all;
+}
+.hoja-pie a { color: #4a6fa5; text-decoration: none; }
+.hoja-pie a:hover { text-decoration: underline; }
+
+/* Hoja que gira al pasar de página */
+.hoja-volteo {
+  position: absolute; top: 0; right: 0;
+  width: 50%; height: 100%;
+  background: var(--papel);
+  border-radius: 0 4px 4px 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  box-shadow: 0 2px 20px var(--papel-sombra);
+  display: none;
+  z-index: 5;
+}
+.hoja-volteo.activa { display: block; }
+.libro.una-pagina .hoja-volteo { width: 100%; border-radius: 4px; }
+
+/* Botón de banderita sobre la hoja derecha */
+.banderita-boton {
+  position: absolute; top: 8px; right: 8px; z-index: 4;
+  width: 28px; height: 28px;
+  border-radius: 50%; border: 1px solid var(--papel-borde);
+  background: rgba(255,255,255,.85);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #8a7f6d;
+}
+.banderita-boton:hover { color: #b3261e; border-color: #d9a9a4; }
+.banderita-boton svg { width: 15px; height: 15px; }
+.banderita-boton.marcada { color: #fff; }
+
+/* ─── Riel de banderitas ─────────────────────────────────────────── */
+.riel-banderitas {
+  position: absolute; right: 8px; top: 22px; bottom: 22px;
+  width: 30px;
+  pointer-events: none;
+}
+.banderita {
+  position: absolute; right: 0;
+  height: 20px; width: 15px;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer; pointer-events: auto;
+  display: flex; align-items: center;
+  padding-left: 6px;
+  overflow: hidden; white-space: nowrap;
+  transition: width .16s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,.28);
+}
+.banderita:hover { width: 190px; }
+.banderita-texto {
+  font-size: 10px; font-weight: 600; color: #fff;
+  opacity: 0; transition: opacity .12s; margin-left: 4px;
+}
+.banderita:hover .banderita-texto { opacity: 1; }
+
+/* ─── Controles de navegación ────────────────────────────────────── */
+.controles {
+  flex-shrink: 0;
+  background: var(--mesa-clara);
+  padding: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  border-top: 1px solid rgba(0,0,0,.2);
+}
+.boton-nav {
+  width: 40px; height: 34px;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08); color: #e8e2d6;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.boton-nav:hover:not(:disabled) { background: rgba(255,255,255,.18); }
+.boton-nav:disabled { opacity: .35; cursor: default; }
+.boton-nav svg { width: 18px; height: 18px; }
+.controles-info { font-size: 12px; color: #d8d0c0; min-width: 150px; text-align: center; }
+
+/* ─── Popover de anotación ───────────────────────────────────────── */
+.nota-popover {
+  position: fixed; z-index: 50;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 14px;
+  width: 270px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.25);
+}
+.nota-titulo {
+  font-size: 12px; font-weight: 600; color: var(--texto);
+  margin-bottom: 10px; line-height: 1.3;
+}
+.nota-popover .etiqueta { margin-top: 8px; }
+.colores { display: flex; gap: 7px; margin-bottom: 12px; }
+.color-opcion {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+}
+.color-opcion.elegido { border-color: var(--texto); }
+.nota-acciones { display: flex; gap: 6px; align-items: center; }
+.boton-primario--chico { width: auto; flex: 1; padding: 8px 12px; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .panel-indice { position: absolute; z-index: 20; height: 100%; box-shadow: 4px 0 16px rgba(0,0,0,.3); }
+  .escenario { padding: 14px 40px 14px 14px; }
+  .hoja { max-width: 90vw; }
+  .lector-caratula { max-width: 30ch; }
+}

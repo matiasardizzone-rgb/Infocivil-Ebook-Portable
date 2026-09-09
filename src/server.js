@@ -168,6 +168,50 @@ app.get('/api/expediente/:cid/descargar/:formato', async (req, res) => {
   res.send(Buffer.from(pdfBytes));
 });
 
+// ─── Documento suelto (para el lector tipo libro) ─────────────────────────
+// GET /api/expediente/:cid/documento/:indice?sessionId=...
+//
+// Sirve el PDF de UNA actuación, para que el lector cargue de a poco en vez
+// de bajar el expediente entero de entrada. El índice es la posición dentro
+// de la lista devuelta por /actuaciones (1-based, igual que el campo
+// 'numero' de cada actuación).
+app.get('/api/expediente/:cid/documento/:indice', async (req, res) => {
+  const { cid, indice } = req.params;
+  const s = requerirSesion(req, res);
+  if (!s) return;
+
+  const scrape = obtenerScrape(req.query.sessionId, cid);
+  if (!scrape) {
+    return res.status(409).json({
+      ok: false,
+      error: 'Todavía no se leyeron las actuaciones de este expediente en esta sesión.',
+    });
+  }
+
+  const n = Number(indice);
+  const actuacion = scrape.actuaciones[n - 1];
+  if (!actuacion) {
+    return res.status(404).json({ ok: false, error: `No existe la actuación ${indice}.` });
+  }
+
+  const [conBytes] = await descargarPdfs(s.page, [actuacion], 1);
+  if (!conBytes.bytes) {
+    return res.status(502).json({
+      ok: false,
+      error: conBytes.error || 'No se pudo descargar el documento desde el SCW.',
+    });
+  }
+
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': 'inline',
+    // El documento no cambia dentro de la vida de la sesión, así que
+    // cachearlo evita volver a pedírselo al SCW si el lector retrocede.
+    'Cache-Control': 'private, max-age=900',
+  });
+  res.send(Buffer.from(conBytes.bytes));
+});
+
 // Cerrar la sesión explícitamente (ej: la persona se va del sitio) — no es
 // obligatorio llamarlo, la sesión expira sola, pero libera recursos antes.
 app.delete('/api/sesion/:sessionId', async (req, res) => {

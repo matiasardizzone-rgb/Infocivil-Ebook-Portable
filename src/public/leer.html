@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lectura — Infocivil Ebook</title>
+<link rel="stylesheet" href="/estilos.css">
+<link rel="stylesheet" href="/lector.css">
+</head>
+<body class="cuerpo-lector">
+
+<header class="barra barra--lector">
+  <div class="barra-contenido">
+    <button class="boton-barra" id="btnIndice" title="Índice de actuaciones" aria-label="Índice de actuaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h10"/>
+      </svg>
+    </button>
+    <div class="lector-titulo">
+      <div class="lector-exp" id="lectorExp"></div>
+      <div class="lector-caratula" id="lectorCaratula"></div>
+    </div>
+    <div class="barra-acciones">
+      <span class="lector-posicion" id="lectorPosicion"></span>
+      <a class="barra-link" id="volverExpediente" href="#">Volver</a>
+    </div>
+  </div>
+</header>
+
+<div class="lector-marco">
+
+  <aside class="panel-indice" id="panelIndice" aria-label="Índice de actuaciones">
+    <div class="panel-indice-cabecera">
+      <input type="search" id="filtroIndice" class="control control--chico" placeholder="Buscar en el índice…">
+    </div>
+    <div class="panel-indice-lista" id="listaIndice"></div>
+  </aside>
+
+  <main class="escenario" id="escenario">
+    <div id="cargandoLector" class="cargando-exp">Preparando la lectura…</div>
+
+    <div class="libro" id="libro" hidden>
+      <div class="hoja hoja--izq" id="hojaIzq">
+        <div class="hoja-encabezado" id="encIzq"></div>
+        <div class="hoja-lienzo"><canvas id="canvasIzq"></canvas></div>
+        <div class="hoja-pie" id="pieIzq"></div>
+      </div>
+
+      <div class="hoja hoja--der" id="hojaDer">
+        <button class="banderita-boton" id="btnBanderita" title="Poner banderita en esta actuación" aria-label="Poner banderita">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+            <path d="M4 22v-7"/>
+          </svg>
+        </button>
+        <div class="hoja-encabezado" id="encDer"></div>
+        <div class="hoja-lienzo"><canvas id="canvasDer"></canvas></div>
+        <div class="hoja-pie" id="pieDer"></div>
+      </div>
+
+      <div class="hoja-volteo" id="hojaVolteo" aria-hidden="true">
+        <div class="hoja-lienzo"><canvas id="canvasVolteo"></canvas></div>
+      </div>
+    </div>
+
+    <div class="riel-banderitas" id="rielBanderitas"></div>
+  </main>
+</div>
+
+<div class="controles">
+  <button class="boton-nav" id="btnAnterior" aria-label="Anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <span class="controles-info" id="controlesInfo"></span>
+  <button class="boton-nav" id="btnSiguiente" aria-label="Siguiente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</div>
+
+<!-- Popover de anotación -->
+<div class="nota-popover" id="notaPopover" hidden>
+  <div class="nota-titulo" id="notaTitulo"></div>
+  <label class="etiqueta" for="notaTexto">Nota</label>
+  <textarea id="notaTexto" class="control control--chico" rows="3" placeholder="Ej.: revisar antes de la audiencia"></textarea>
+  <label class="etiqueta">Color</label>
+  <div class="colores" id="colores"></div>
+  <div class="nota-acciones">
+    <button class="boton-primario boton-primario--chico" id="notaGuardar">Guardar</button>
+    <button class="boton-texto" id="notaQuitar">Quitar</button>
+    <button class="boton-texto" id="notaCancelar">Cancelar</button>
+  </div>
+</div>
+
+<script src="/vendor/pdf.min.js"></script>
+<script src="/lector.js"></script>
+</body>
+</html>
