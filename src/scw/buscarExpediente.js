@@ -40,10 +40,21 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
   await page.locator('input[name="formPublica:numero"]').fill(String(numero));
   await page.locator('input[name="formPublica:anio"]').fill(String(anio));
 
-  await Promise.all([
-    page.waitForLoadState('networkidle'),
-    page.locator('input[name="formPublica:buscarPorNumeroButton"]').click(),
-  ]);
+  try {
+    await Promise.all([
+      page.waitForLoadState('networkidle'),
+      page.locator('input[name="formPublica:buscarPorNumeroButton"]').click(),
+    ]);
+  } catch (err) {
+    // Carrera conocida de Playwright: el submit de este formulario dispara
+    // una navegación de página completa, y a veces empieza antes de que el
+    // propio chequeo interno de "actionability" del click() termine — tira
+    // un error que no refleja un fallo real (el click sí se disparó y la
+    // navegación sí ocurrió). La seguimos verificando más abajo con
+    // pareceExpedienteReal()/cid en la URL, así que acá alcanza con no
+    // abortar por esto.
+    console.warn('[buscarExpediente] Ignorando posible carrera durante el click de Consultar:', err.message);
+  }
   // Margen extra: el submit de JSF es una navegación de página completa (no
   // un fetch/XHR puro) — 'networkidle' puede resolver en el instante justo
   // en que el documento viejo ya se descartó pero el nuevo todavía no
