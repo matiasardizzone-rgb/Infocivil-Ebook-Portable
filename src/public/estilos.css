@@ -208,3 +208,54 @@ select.control { margin-bottom: 16px; cursor: pointer; }
   text-align: center; padding: 60px 20px;
   color: var(--texto-suave); font-size: 14px;
 }
+
+/* ─── Botones secundarios ────────────────────────────────────────── */
+.guardar-fila { margin-top: 18px; }
+.boton-secundario {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  color: var(--azul); background: var(--blanco);
+  border: 1px solid var(--borde); border-radius: 6px; cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.boton-secundario:hover:not(:disabled) { background: var(--azul-palido); border-color: var(--azul-claro); }
+.boton-secundario:disabled { opacity: .55; cursor: default; }
+.boton-secundario--activo { background: var(--azul-palido); border-color: var(--azul-claro); }
+.boton-icono { width: 16px; height: 16px; }
+
+.boton-texto {
+  padding: 9px 10px;
+  font-size: 13px; font-family: inherit;
+  color: var(--texto-tenue); background: none;
+  border: none; cursor: pointer; border-radius: 6px;
+}
+.boton-texto:hover { color: var(--error); background: var(--error-fondo); }
+
+/* ─── Mis expedientes ────────────────────────────────────────────── */
+.guardado {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  box-shadow: var(--sombra);
+}
+.guardado-datos { flex: 1; min-width: 0; }
+.guardado-id { font-size: 12px; color: var(--texto-tenue); margin-bottom: 3px; }
+.guardado-caratula {
+  font-size: 14.5px; font-weight: 600; color: var(--texto);
+  line-height: 1.35; margin-bottom: 4px;
+}
+.guardado-meta { font-size: 12px; color: var(--texto-suave); }
+.guardado-acciones { display: flex; gap: 6px; flex-shrink: 0; }
+
+.vacio {
+  text-align: center; padding: 50px 20px;
+  color: var(--texto-suave); font-size: 14px;
+  background: var(--blanco);
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio);
+}
+.vacio .pie-nota { margin-top: 8px; }

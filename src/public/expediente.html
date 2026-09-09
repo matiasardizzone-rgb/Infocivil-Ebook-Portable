@@ -19,6 +19,7 @@
       <div class="barra-sub">Poder Judicial de la Nación · Cámara Civil</div>
     </div>
     <div class="barra-acciones">
+      <a class="barra-link" href="/mis-expedientes.html">Mis expedientes</a>
       <a class="barra-link" href="/">Nueva consulta</a>
     </div>
   </div>
@@ -37,22 +38,13 @@
     <div id="avisos"></div>
 
     <div class="acciones">
-      <button class="accion" data-formato="zip">
+      <button class="accion accion--destacada" id="btnEbook">
         <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-          <path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6l2 3h6a2 2 0 0 1 2 2z"/>
-          <path d="M12 11v5M10 13h4"/>
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
         </svg>
-        <span class="accion-titulo">Descargar ZIP</span>
-        <span class="accion-desc">Todas las actuaciones como archivos PDF separados, comprimidas.</span>
-      </button>
-
-      <button class="accion" data-formato="unificado">
-        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <path d="M14 2v6h6"/>
-        </svg>
-        <span class="accion-titulo">PDF unificado</span>
-        <span class="accion-desc">Un solo PDF con todo el expediente, sin índice ni enlaces. Para remitir a otra jurisdicción.</span>
+        <span class="accion-titulo">Leer como libro</span>
+        <span class="accion-desc">Lectura tipo expediente en papel, con banderitas y anotaciones.</span>
       </button>
 
       <button class="accion" data-formato="unificado-indice">
@@ -65,14 +57,31 @@
         <span class="accion-desc">Con portada, índice hipervinculado y el enlace público del SCW al pie de cada página.</span>
       </button>
 
-      <button class="accion accion--destacada" id="btnEbook">
-        <span class="accion-nuevo">Nuevo</span>
+      <button class="accion" data-formato="unificado">
         <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6"/>
         </svg>
-        <span class="accion-titulo">Leer como libro</span>
-        <span class="accion-desc">Lectura tipo expediente en papel, con banderitas y anotaciones.</span>
+        <span class="accion-titulo">PDF unificado</span>
+        <span class="accion-desc">Un solo PDF con todo el expediente, sin índice ni enlaces. Para remitir a otra jurisdicción.</span>
+      </button>
+
+      <button class="accion" data-formato="zip">
+        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6l2 3h6a2 2 0 0 1 2 2z"/>
+          <path d="M12 11v5M10 13h4"/>
+        </svg>
+        <span class="accion-titulo">Descargar ZIP</span>
+        <span class="accion-desc">Cada actuación como PDF separado, con su firma electrónica intacta y verificable.</span>
+      </button>
+    </div>
+
+    <div class="guardar-fila">
+      <button class="boton-secundario" id="btnGuardar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true" class="boton-icono">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span id="btnGuardarTexto">Guardar en Mis expedientes</span>
       </button>
     </div>
 
@@ -123,6 +132,7 @@ async function cargarExpediente() {
 
     $('cargando').hidden = true;
     $('contenido').hidden = false;
+    actualizarBotonGuardar();
   } catch (e) {
     $('cargando').textContent = e.message + ' — Probá hacer una nueva consulta.';
   }
@@ -144,6 +154,56 @@ document.querySelectorAll('.accion[data-formato]').forEach(btn => {
 $('btnEbook').addEventListener('click', () => {
   const p = new URLSearchParams({ cid, sessionId, jurisdiccion, numero, anio });
   location.href = '/leer.html?' + p.toString();
+});
+
+// ─── Mis expedientes ────────────────────────────────────────────────
+// Guardado local en el navegador (localStorage), sin cuentas ni datos en
+// el servidor. Se guarda la identificación del expediente y la cantidad de
+// actuaciones vista, que es lo que permite detectar novedades más adelante:
+// al reabrirlo se compara contra la cantidad actual. NO se guardan los
+// documentos.
+const CLAVE = 'infocivil.misExpedientes';
+
+function leerGuardados() {
+  try { return JSON.parse(localStorage.getItem(CLAVE) || '[]'); }
+  catch { return []; }
+}
+function escribirGuardados(lista) {
+  localStorage.setItem(CLAVE, JSON.stringify(lista));
+}
+function claveExpediente() {
+  return `${jurisdiccion}|${numero}|${anio}`;
+}
+function estaGuardado() {
+  return leerGuardados().some(e => e.clave === claveExpediente());
+}
+
+function actualizarBotonGuardar() {
+  const guardado = estaGuardado();
+  $('btnGuardarTexto').textContent = guardado ? 'Quitar de Mis expedientes' : 'Guardar en Mis expedientes';
+  $('btnGuardar').classList.toggle('boton-secundario--activo', guardado);
+}
+
+$('btnGuardar').addEventListener('click', () => {
+  let lista = leerGuardados();
+  const clave = claveExpediente();
+
+  if (estaGuardado()) {
+    lista = lista.filter(e => e.clave !== clave);
+    escribirGuardados(lista);
+    mostrarEstado('Quitado de Mis expedientes.', 'ok');
+  } else {
+    lista.unshift({
+      clave,
+      jurisdiccion, numero, anio,
+      caratula: (datosExpediente && datosExpediente.caratula) || '',
+      cantidadActuaciones: (datosExpediente && datosExpediente.actuaciones.length) || 0,
+      guardadoEl: new Date().toISOString(),
+    });
+    escribirGuardados(lista);
+    mostrarEstado('Guardado en Mis expedientes (solo en este navegador).', 'ok');
+  }
+  actualizarBotonGuardar();
 });
 </script>
 </body>

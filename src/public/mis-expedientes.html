@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis expedientes — Infocivil Ebook</title>
+<link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-contenido">
+    <svg class="escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <path d="M12 3v18M7 7h10M5 7l-2.5 6a3.5 3.5 0 0 0 5 0L5 7zM19 7l-2.5 6a3.5 3.5 0 0 0 5 0L19 7z"/>
+      <path d="M8 21h8"/>
+    </svg>
+    <div>
+      <div class="barra-titulo">Infocivil Ebook</div>
+      <div class="barra-sub">Poder Judicial de la Nación · Cámara Civil</div>
+    </div>
+    <div class="barra-acciones">
+      <a class="barra-link" href="/">Nueva consulta</a>
+    </div>
+  </div>
+</header>
+
+<main class="ancho">
+  <div class="exp-cabecera">
+    <h1 class="exp-caratula">Mis expedientes</h1>
+    <div class="exp-meta">Guardados en este navegador. No se almacenan en el servidor.</div>
+  </div>
+
+  <div id="lista"></div>
+
+  <div id="vacio" class="vacio" hidden>
+    <p>Todavía no guardaste ningún expediente.</p>
+    <p class="pie-nota">Buscá un expediente y usá «Guardar en Mis expedientes» para tenerlo a mano acá.</p>
+  </div>
+
+  <div id="estado" class="estado" role="status" aria-live="polite"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CLAVE = 'infocivil.misExpedientes';
+
+function leerGuardados() {
+  try { return JSON.parse(localStorage.getItem(CLAVE) || '[]'); }
+  catch { return []; }
+}
+function escribirGuardados(lista) {
+  localStorage.setItem(CLAVE, JSON.stringify(lista));
+}
+function fechaCorta(iso) {
+  try { return new Date(iso).toLocaleDateString('es-AR'); } catch { return ''; }
+}
+
+function pintar() {
+  const lista = leerGuardados();
+  const cont = $('lista');
+  cont.innerHTML = '';
+
+  if (!lista.length) {
+    $('vacio').hidden = false;
+    return;
+  }
+  $('vacio').hidden = true;
+
+  for (const e of lista) {
+    const fila = document.createElement('div');
+    fila.className = 'guardado';
+    fila.innerHTML = `
+      <div class="guardado-datos">
+        <div class="guardado-id">${e.jurisdiccion} ${e.numero}/${e.anio}</div>
+        <div class="guardado-caratula">${e.caratula || '(sin carátula registrada)'}</div>
+        <div class="guardado-meta">${e.cantidadActuaciones} actuaciones al ${fechaCorta(e.guardadoEl)}</div>
+      </div>
+      <div class="guardado-acciones">
+        <button class="boton-secundario" data-abrir="${e.clave}">Abrir</button>
+        <button class="boton-texto" data-quitar="${e.clave}">Quitar</button>
+      </div>`;
+    cont.appendChild(fila);
+  }
+
+  // Abrir vuelve a consultar el SCW: se necesita una sesión nueva, y de
+  // paso así se ven las actuaciones al día (es el momento natural para
+  // detectar si aparecieron nuevas desde que se guardó).
+  cont.querySelectorAll('[data-abrir]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const e = leerGuardados().find(x => x.clave === b.dataset.abrir);
+      if (!e) return;
+      b.disabled = true;
+      b.textContent = 'Buscando…';
+      try {
+        const r = await fetch('/api/buscar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jurisdiccion: e.jurisdiccion, numero: e.numero, anio: e.anio }),
+        });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'No se pudo abrir el expediente.');
+        const p = new URLSearchParams({
+          cid: d.cid, sessionId: d.sessionId,
+          jurisdiccion: e.jurisdiccion, numero: e.numero, anio: e.anio,
+        });
+        location.href = '/expediente.html?' + p.toString();
+      } catch (err) {
+        $('estado').textContent = err.message;
+        $('estado').className = 'estado estado--error';
+        b.disabled = false;
+        b.textContent = 'Abrir';
+      }
+    });
+  });
+
+  cont.querySelectorAll('[data-quitar]').forEach(b => {
+    b.addEventListener('click', () => {
+      escribirGuardados(leerGuardados().filter(x => x.clave !== b.dataset.quitar));
+      pintar();
+    });
+  });
+}
+pintar();
+</script>
+</body>
+</html>
