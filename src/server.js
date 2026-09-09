@@ -29,7 +29,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Los archivos del front no se cachean: durante el desarrollo el navegador
+// se quedaba con versiones viejas del HTML/JS aun forzando la recarga, lo
+// que hacía parecer que los cambios no se habían desplegado. Las descargas
+// de documentos sí llevan su propio Cache-Control (ver más abajo), que es
+// donde el caché realmente aporta.
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store');
+  },
+}));
 
 function sanitizarNombre(texto) {
   return String(texto || 'expediente').replace(/[/\\?%*:|"<>]/g, ' ').replace(/\s+/g, ' ').trim();
