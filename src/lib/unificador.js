@@ -140,6 +140,65 @@ function pushAnnot(pdf, page, annotRef) {
   page.node.Annots().push(annotRef);
 }
 
+// "Aplana" las anotaciones con apariencia visual (típicamente el sello de
+// firma electrónica del PJN: el recuadro con "Digitally signed by ..." y la
+// fecha) estampándolas como contenido normal de la página.
+//
+// Por qué hace falta: copyPages SÍ conserva las anotaciones (verificado), pero
+// el sello de una firma electrónica es un widget de firma, y los visores no lo
+// dibujan cuando la firma ya no existe o no puede validarse — que es
+// exactamente lo que pasa al unificar (la firma certifica el archivo original
+// byte por byte, así que se pierde inevitablemente). Sin este aplanado, el
+// PDF unificado perdía la constancia visible de quién firmó y cuándo, que es
+// justamente el dato que se necesita al leer el expediente.
+//
+// La firma en sí no se recupera (eso es imposible y el PDF unificado lo
+// aclara en la portada); lo que se preserva es su representación visual.
+function aplanarSellosDeFirma(pdf, page) {
+  let annots;
+  try {
+    annots = page.node.Annots();
+  } catch { return 0; }
+  if (!annots) return 0;
+
+  let aplanados = 0;
+  for (let i = 0; i < annots.size(); i++) {
+    try {
+      const annot = annots.lookup(i);
+      if (!annot) continue;
+      const ap = annot.lookup(PDFName.of('AP'));
+      if (!ap) continue;
+      const apariencia = ap.get(PDFName.of('N'));
+      if (!apariencia) continue;
+      const rect = annot.lookup(PDFName.of('Rect'));
+      if (!rect) continue;
+
+      const coords = [0, 1, 2, 3].map((k) => rect.lookup(k).asNumber());
+      const x = Math.min(coords[0], coords[2]);
+      const y = Math.min(coords[1], coords[3]);
+
+      const nombre = 'SelloFirma' + i;
+      const recursos = page.node.Resources();
+      if (!recursos) continue;
+      let xobjects = recursos.lookup(PDFName.of('XObject'));
+      if (!xobjects) {
+        xobjects = pdf.context.obj({});
+        recursos.set(PDFName.of('XObject'), xobjects);
+      }
+      xobjects.set(PDFName.of(nombre), apariencia);
+
+      const ops = `\nq 1 0 0 1 ${x} ${y} cm /${nombre} Do Q\n`;
+      const ref = pdf.context.register(pdf.context.stream(ops));
+      page.node.addContentStream(ref);
+      aplanados++;
+    } catch {
+      // Una anotación que no se puede aplanar no debe romper el documento
+      // entero: se ignora y se sigue con las demás.
+    }
+  }
+  return aplanados;
+}
+
 // Link interno: salta a la primera página de una actuación (Dest + Fit).
 function anotacionInterna(pdf, page, rect, destPageRef) {
   const annot = pdf.context.obj({
@@ -341,7 +400,7 @@ export async function generarPdfUnificado({
         try {
           const src = await PDFDocument.load(act.bytes, { ignoreEncryption: true });
           const copiadas = await pdf.copyPages(src, src.getPageIndices());
-          copiadas.forEach((p) => pdf.addPage(p));
+          copiadas.forEach((p) => { pdf.addPage(p); aplanarSellosDeFirma(pdf, p); });
           if (!copiadas.length) bytesOk = false;
         } catch (e) {
           bytesOk = false;
@@ -415,7 +474,7 @@ export async function generarPdfUnificado({
         const src = await PDFDocument.load(act.bytes, { ignoreEncryption: true });
         const indices = src.getPageIndices();
         const copiadas = await pdf.copyPages(src, indices);
-        copiadas.forEach(p => { pdf.addPage(p); paginasDeEstaActuacion.push(p); });
+        copiadas.forEach(p => { pdf.addPage(p); aplanarSellosDeFirma(pdf, p); paginasDeEstaActuacion.push(p); });
         if (!copiadas.length) bytesOk = false;
       } catch (e) {
         bytesOk = false;
