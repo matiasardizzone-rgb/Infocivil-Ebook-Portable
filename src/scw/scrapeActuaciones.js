@@ -156,7 +156,12 @@ async function esperarTablaHistoricasLista(page, timeoutMs) {
     if (estado !== 'esperando') return estado;
     await page.waitForTimeout(500);
   }
-  return 'timeout';
+  // Diagnóstico: si nunca se resolvió, devolvemos un fragmento del texto
+  // real de la página para poder ver qué mensaje muestra el SCW en este
+  // caso — nuestra detección de "sin históricas" puede estar buscando un
+  // texto que no coincide exactamente con el real.
+  const debug = await page.evaluate(() => (document.body.innerText || '').slice(0, 500));
+  return { estado: 'timeout', debug, url: page.url() };
 }
 
 async function clickSiguienteHistoricas(page) {
@@ -252,7 +257,9 @@ export async function scrapeActuaciones(page, scwBase, cid) {
   // archivo sobre por qué esto no necesita el aviso que sí necesitó la
   // extensión.
   await page.goto(`${scwBase}/scw/actuacionesHistoricas.seam?cid=${cid}`, { waitUntil: 'networkidle' });
-  const historicasEstado = await esperarTablaHistoricasLista(page, 40000);
+  const resultadoHistoricas = await esperarTablaHistoricasLista(page, 40000);
+  const historicasEstado = typeof resultadoHistoricas === 'string' ? resultadoHistoricas : resultadoHistoricas.estado;
+  const historicasDebug = typeof resultadoHistoricas === 'string' ? null : { texto: resultadoHistoricas.debug, url: resultadoHistoricas.url };
 
   let historicas = [];
   let incompletaHistoricas = false;
@@ -262,7 +269,8 @@ export async function scrapeActuaciones(page, scwBase, cid) {
     incompletaHistoricas = r.incompleta;
   }
   // 'vacio' → el expediente genuinamente no tiene históricas.
-  // 'timeout' → no se pudo determinar; queda como advertencia (ver abajo).
+  // 'timeout' → no se pudo determinar; historicasDebug trae un fragmento
+  // del texto real de la página para diagnosticar por qué.
 
   const combinadas = [...historicas, ...actuales].map((item, i) => ({
     numero: i + 1,
@@ -273,6 +281,7 @@ export async function scrapeActuaciones(page, scwBase, cid) {
     actuaciones: combinadas,
     paginacionIncompleta: incompletaActuales || incompletaHistoricas,
     historicasEstado, // 'listo' | 'vacio' | 'timeout'
+    historicasDebug, // solo si historicasEstado === 'timeout'
     caratula,
   };
 }
