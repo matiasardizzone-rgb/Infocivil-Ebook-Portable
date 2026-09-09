@@ -44,6 +44,11 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
     page.waitForLoadState('networkidle'),
     page.locator('input[name="formPublica:buscarPorNumeroButton"]').click(),
   ]);
+  // Margen extra: el submit de JSF es una navegación de página completa (no
+  // un fetch/XHR puro) — 'networkidle' puede resolver en el instante justo
+  // en que el documento viejo ya se descartó pero el nuevo todavía no
+  // terminó de armar el DOM, dejando document.body momentáneamente null.
+  await page.waitForTimeout(400);
 
   // Verificación de contenido real: un cid= en la URL no alcanza como señal
   // de éxito — páginas de error/redirect genéricas del SCW también pueden
@@ -52,7 +57,7 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
   // un expediente: la palabra "Carátula" en algún lado, o la tabla de
   // actuaciones presente.
   async function pareceExpedienteReal() {
-    const texto = await page.evaluate(() => document.body.innerText || '');
+    const texto = await page.evaluate(() => (document.body && document.body.innerText) || '');
     if (/car[aá]tula/i.test(texto)) return true;
     if (await page.locator('#expediente\\:action-table').count()) return true;
     return false;
@@ -70,7 +75,7 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
   const totalLinks = await links.count();
   if (totalLinks === 0) {
     throw new Error(
-      `No se encontró el expediente ${numero}/${anio} en ${jurisdiccion} (o cambió el formato de la página de resultados — revisar selectores). Texto de la página: "${(await page.evaluate(() => document.body.innerText || '')).slice(0, 300).replace(/\s+/g, ' ')}"`
+      `No se encontró el expediente ${numero}/${anio} en ${jurisdiccion} (o cambió el formato de la página de resultados — revisar selectores). Texto de la página: "${(await page.evaluate(() => (document.body && document.body.innerText) || '')).slice(0, 300).replace(/\s+/g, ' ')}"`
     );
   }
   const href = await links.first().getAttribute('href');
