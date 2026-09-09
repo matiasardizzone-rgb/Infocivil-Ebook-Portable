@@ -57,7 +57,8 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
     // respecto de cómo estaba antes de tocar "Consultar" (comparar contra
     // un umbral fijo de texto no alcanza: home.seam ya tiene de por sí
     // bastante texto de header/menú/footer).
-    await esperarPaginaCambiada(htmlAntes);
+    const cambio = await esperarPaginaCambiada(htmlAntes);
+    console.log(`[buscarExpediente] ¿La página cambió tras el click? ${cambio} — URL: ${page.url()}`);
   }
 
   async function esperarPaginaCambiada(htmlAntes, timeoutMs = 20000) {
@@ -113,7 +114,7 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
   const totalLinks = await links.count();
   if (totalLinks === 0) {
     throw new Error(
-      `No se encontró el expediente ${numero}/${anio} en ${jurisdiccion} (o cambió el formato de la página de resultados — revisar selectores). Texto de la página: "${(await page.evaluate(() => (document.body && document.body.innerText) || '')).slice(0, 300).replace(/\s+/g, ' ')}"`
+      `No se encontró el expediente ${numero}/${anio} en ${jurisdiccion} (o cambió el formato de la página de resultados — revisar selectores). URL final: ${page.url()} — Texto de la página: "${(await page.evaluate(() => (document.body && document.body.innerText) || '')).slice(0, 300).replace(/\s+/g, ' ')}"`
     );
   }
   const href = await links.first().getAttribute('href');
