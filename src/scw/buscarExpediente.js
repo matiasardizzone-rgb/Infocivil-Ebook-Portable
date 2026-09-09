@@ -89,6 +89,24 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
     }
   }
 
+  // Ya sabemos que la URL cambió (esperarPaginaCambiada) — pero eso puede
+  // ser solo el cascarón inicial de la página nueva; el contenido real
+  // (carátula, tabla de actuaciones) puede llenarse con un paso extra de
+  // JS/AJAX después de la navegación. Ahora que estamos confirmados fuera
+  // de home.seam, medir por longitud de texto sí es una señal confiable
+  // (a diferencia de antes, cuando podíamos seguir en home.seam con todo
+  // su texto de header/menú/footer).
+  await esperarContenidoReal();
+  async function esperarContenidoReal(timeoutMs = 15000) {
+    const inicio = Date.now();
+    while (Date.now() - inicio < timeoutMs) {
+      const largo = await page.evaluate(() => (document.body && document.body.innerText || '').trim().length).catch(() => 0);
+      if (largo > 100) return true;
+      await page.waitForTimeout(300);
+    }
+    return false;
+  }
+
   // Verificación de contenido real: un cid= en la URL no alcanza como señal
   // de éxito — páginas de error/redirect genéricas del SCW también pueden
   // traer un cid= en la URL (el de su propia conversación de servidor, no
