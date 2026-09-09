@@ -39,6 +39,8 @@
   let indiceHoja = 0;
   let dosPaginas = window.innerWidth >= 1100;
   let animando = false;
+  // Factor sobre el ajuste automático: 1 = página completa visible.
+  let zoom = Number(localStorage.getItem('infocivil.zoomLector')) || 1;
 
   // ─── Marcas (banderitas + notas), guardadas por navegador ──────────
   function leerMarcas() {
@@ -107,6 +109,17 @@
     }
   }
 
+  // Calcula la escala para que la página entre lo más grande posible en el
+  // espacio realmente disponible. Se mide el contenedor (no se asume un
+  // tamaño): el ajuste toma el menor de los dos factores (ancho y alto),
+  // así la página entera queda visible sin recortes.
+  function calcularEscala(vpBase, contenedor) {
+    const ancho = Math.max(120, contenedor.clientWidth - 8);
+    const alto = Math.max(120, contenedor.clientHeight - 8);
+    const ajuste = Math.min(ancho / vpBase.width, alto / vpBase.height);
+    return ajuste * zoom;
+  }
+
   async function renderizarEn(canvas, hoja) {
     const ctx = canvas.getContext('2d');
     if (!hoja) {
@@ -124,12 +137,18 @@
     }
     const { doc } = await abrirDocumento(hoja.actuacion);
     const pagina = await doc.getPage(hoja.paginaEnDoc);
-    const alto = Math.max(320, $('escenario').clientHeight - 130);
     const base = pagina.getViewport({ scale: 1 });
-    const escala = alto / base.height;
+    const escala = calcularEscala(base, canvas.parentElement);
     const vp = pagina.getViewport({ scale: escala });
-    canvas.width = Math.floor(vp.width);
-    canvas.height = Math.floor(vp.height);
+
+    // Renderizar a la resolución real del dispositivo evita que el texto se
+    // vea borroso en pantallas de alta densidad.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(vp.width * dpr);
+    canvas.height = Math.floor(vp.height * dpr);
+    canvas.style.width = Math.floor(vp.width) + 'px';
+    canvas.style.height = Math.floor(vp.height) + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     await pagina.render({ canvasContext: ctx, viewport: vp }).promise;
   }
 
@@ -366,11 +385,40 @@
   $('btnIndice').addEventListener('click', () => $('panelIndice').classList.toggle('oculto'));
   $('filtroIndice').addEventListener('input', (e) => { pintarIndice(e.target.value); marcarIndiceActual(); });
 
+  // ─── Zoom y modo de página ─────────────────────────────────────────
+  function actualizarZoomTexto() {
+    $('zoomTexto').textContent = Math.round(zoom * 100) + '%';
+  }
+  async function aplicarZoom(nuevo) {
+    zoom = Math.min(4, Math.max(0.5, Number(nuevo.toFixed(2))));
+    localStorage.setItem('infocivil.zoomLector', String(zoom));
+    actualizarZoomTexto();
+    await pintarHojas();
+  }
+  $('btnAcercar').addEventListener('click', () => aplicarZoom(zoom + 0.25));
+  $('btnAlejar').addEventListener('click', () => aplicarZoom(zoom - 0.25));
+  $('btnAjustar').addEventListener('click', () => aplicarZoom(1));
+  actualizarZoomTexto();
+
+  // Permitir forzar una o dos páginas más allá del ancho de pantalla: en una
+  // sola página el documento se ve al doble de ancho, que es lo que se
+  // necesita para leer con comodidad un escrito denso.
+  let modoManual = null; // null = automático según ancho
+  $('btnUnaDos').addEventListener('click', async () => {
+    modoManual = !dosPaginas;
+    dosPaginas = modoManual;
+    if (dosPaginas && indiceHoja % 2 !== 0) indiceHoja--;
+    await pintarHojas();
+  });
+
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea')) return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); siguiente(); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); anterior(); }
     else if (e.key === 'Escape') cerrarPopover();
+    else if (e.key === '+' || e.key === '=') { e.preventDefault(); aplicarZoom(zoom + 0.25); }
+    else if (e.key === '-') { e.preventDefault(); aplicarZoom(zoom - 0.25); }
+    else if (e.key === '0') { e.preventDefault(); aplicarZoom(1); }
   });
 
   // Cambio de ancho: pasar de spread a una página y viceversa.
@@ -378,16 +426,13 @@
   window.addEventListener('resize', () => {
     clearTimeout(temporizadorResize);
     temporizadorResize = setTimeout(async () => {
-      const antes = dosPaginas;
-      dosPaginas = window.innerWidth >= 1100;
-      if (antes !== dosPaginas) {
-        // Al cambiar de modo, alinear a par para que el spread no quede
-        // desfasado respecto de la hoja que se estaba leyendo.
-        if (dosPaginas && indiceHoja % 2 !== 0) indiceHoja--;
-        await pintarHojas();
-      } else {
-        await pintarHojas();
+      // Si el usuario eligió el modo a mano, se respeta su elección.
+      if (modoManual === null) {
+        const antes = dosPaginas;
+        dosPaginas = window.innerWidth >= 1100;
+        if (antes !== dosPaginas && dosPaginas && indiceHoja % 2 !== 0) indiceHoja--;
       }
+      await pintarHojas();
     }, 220);
   });
 
