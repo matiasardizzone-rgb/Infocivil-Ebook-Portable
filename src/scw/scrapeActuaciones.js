@@ -139,28 +139,49 @@ async function scrapearFilasHistoricas(page) {
   });
 }
 
+// Determina si la página de históricas tiene documentos, no tiene ninguno,
+// o no se pudo determinar.
+//
+// Detalle importante confirmado con un expediente real sin históricas: el
+// SCW NO muestra ningún cartel tipo "no posee actuaciones históricas" —
+// simplemente carga la página con los datos generales del expediente y no
+// muestra tabla alguna. Por eso no alcanza con buscar ese texto (la versión
+// anterior se quedaba esperando 40s algo que nunca iba a aparecer, y
+// terminaba reportando 'timeout' en un caso que en realidad era 'vacio').
+//
+// Criterio: si la página ya cargó (tiene los datos del expediente, que se
+// detectan por la presencia de "Carátula") y pasado un margen razonable no
+// aparecieron filas con documentos, se considera que no hay históricas.
 async function esperarTablaHistoricasLista(page, timeoutMs) {
   const inicio = Date.now();
+  let paginaCargadaDesde = null;
+
   while (Date.now() - inicio < timeoutMs) {
     const estado = await page.evaluate(() => {
-      const sinHistoricas = Array.from(document.querySelectorAll('*')).some(
-        (el) =>
-          el.children.length === 0 &&
-          (el.textContent || '').toLowerCase().includes('no posee actuaciones hist')
-      );
-      if (sinHistoricas) return 'vacio';
+      const texto = (document.body && document.body.innerText) || '';
+      const sinHistoricasExplicito = /no posee actuaciones hist/i.test(texto);
+      const paginaCargada = /car[aá]tula/i.test(texto);
       const filas = document.querySelectorAll('tbody tr');
-      const listo = Array.from(filas).some((f) => f.querySelector("a[href*='viewer']"));
-      return listo ? 'listo' : 'esperando';
-    });
-    if (estado !== 'esperando') return estado;
+      const hayDocumentos = Array.from(filas).some((f) => f.querySelector("a[href*='viewer']"));
+      return { sinHistoricasExplicito, paginaCargada, hayDocumentos };
+    }).catch(() => ({ sinHistoricasExplicito: false, paginaCargada: false, hayDocumentos: false }));
+
+    if (estado.hayDocumentos) return 'listo';
+    if (estado.sinHistoricasExplicito) return 'vacio';
+
+    if (estado.paginaCargada) {
+      // La página ya está cargada pero todavía no hay filas: le damos un
+      // margen corto por si la tabla llega por AJAX, y si no aparece,
+      // concluimos que este expediente no tiene históricas.
+      if (paginaCargadaDesde === null) paginaCargadaDesde = Date.now();
+      else if (Date.now() - paginaCargadaDesde > 6000) return 'vacio';
+    }
+
     await page.waitForTimeout(500);
   }
-  // Diagnóstico: si nunca se resolvió, devolvemos un fragmento del texto
-  // real de la página para poder ver qué mensaje muestra el SCW en este
-  // caso — nuestra detección de "sin históricas" puede estar buscando un
-  // texto que no coincide exactamente con el real.
-  const debug = await page.evaluate(() => (document.body.innerText || '').slice(0, 500));
+
+  // Timeout real: la página nunca llegó a cargar del todo.
+  const debug = await page.evaluate(() => ((document.body && document.body.innerText) || '').slice(0, 500)).catch(() => '');
   return { estado: 'timeout', debug, url: page.url() };
 }
 
