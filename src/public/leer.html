@@ -63,11 +63,13 @@
       </div>
     </div>
 
+    <div class="rollo" id="rollo" hidden></div>
+
     <div class="riel-banderitas" id="rielBanderitas"></div>
   </main>
 </div>
 
-<div class="controles">
+<div class="controles" id="controles">
   <button class="boton-nav" id="btnAnterior" aria-label="Anterior">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
@@ -92,6 +94,15 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
       <rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/>
     </svg>
+  </button>
+
+  <span class="controles-separador"></span>
+
+  <button class="boton-modo" id="btnModo" title="Cambiar entre libro y lectura continua">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" id="iconoModo">
+      <path d="M8 3v18M4 6h4M4 12h4M4 18h4"/><rect x="10" y="3" width="10" height="18" rx="1"/>
+    </svg>
+    <span id="modoTexto">Lectura continua</span>
   </button>
 </div>
 

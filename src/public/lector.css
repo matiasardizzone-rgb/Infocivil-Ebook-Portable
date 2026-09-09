@@ -265,6 +265,83 @@
 .nota-acciones { display: flex; gap: 6px; align-items: center; }
 .boton-primario--chico { width: auto; flex: 1; padding: 8px 12px; font-size: 13px; }
 
+/* ─── Modo lectura continua (scroll vertical) ────────────────────── */
+.rollo {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 0 40px;
+  scroll-behavior: smooth;
+}
+.rollo-actuacion { margin-bottom: 26px; }
+.rollo-cabecera {
+  position: sticky; top: 0; z-index: 3;
+  background: rgba(74, 64, 52, .94);
+  color: #f0ebe0;
+  padding: 8px 14px;
+  border-radius: 6px 6px 0 0;
+  display: flex; align-items: center; gap: 10px;
+}
+.rollo-cabecera-datos { flex: 1; min-width: 0; }
+.rollo-num { font-size: 10.5px; color: #c2b8a6; font-weight: 600; }
+.rollo-tipo {
+  font-size: 13px; font-weight: 600; color: #fff; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rollo-desc {
+  font-size: 11.5px; color: #d4cbba; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rollo-banderita {
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.1); color: #d4cbba;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.rollo-banderita:hover { background: rgba(255,255,255,.2); color: #fff; }
+.rollo-banderita svg { width: 14px; height: 14px; }
+
+.rollo-paginas {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 12px 0;
+}
+.rollo-pagina {
+  background: var(--papel);
+  box-shadow: 0 2px 12px var(--papel-sombra);
+  border-radius: 3px;
+  position: relative;
+}
+.rollo-pagina canvas { display: block; border-radius: 3px; }
+.rollo-espera {
+  height: 220px;
+  display: flex; align-items: center; justify-content: center;
+  color: #b5aa97; font-size: 12.5px;
+  background: rgba(255,255,255,.04);
+  border: 1px dashed rgba(255,255,255,.15);
+  border-radius: 6px;
+}
+.rollo-pie {
+  text-align: center; font-size: 9px; color: #a89d8a;
+  padding: 4px 10px 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rollo-pie a { color: #b9cbe6; text-decoration: none; }
+
+.boton-modo {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 30px; padding: 0 12px;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08); color: #e8e2d6;
+  cursor: pointer; font-family: inherit; font-size: 12px;
+}
+.boton-modo:hover { background: rgba(255,255,255,.18); }
+.boton-modo svg { width: 15px; height: 15px; }
+
+/* En lectura continua no hacen falta los controles de hoja */
+.controles.modo-rollo #btnAnterior,
+.controles.modo-rollo #btnSiguiente,
+.controles.modo-rollo #btnUnaDos { display: none; }
+
 @media (max-width: 900px) {
   .panel-indice { position: absolute; z-index: 20; height: 100%; box-shadow: 4px 0 16px rgba(0,0,0,.3); }
   .escenario { padding: 14px 40px 14px 14px; }

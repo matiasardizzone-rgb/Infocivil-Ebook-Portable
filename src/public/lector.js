@@ -72,7 +72,7 @@
       await irAHoja(0, false);
 
       $('cargandoLector').hidden = true;
-      $('libro').hidden = false;
+      await aplicarModo();
     } catch (e) {
       $('cargandoLector').textContent = e.message;
     }
@@ -197,6 +197,7 @@
   }
 
   function actuacionActual() {
+    if (modoRollo) return actuacionEnRollo;
     const h = hojas[indiceHoja];
     return h ? h.actuacion : 1;
   }
@@ -254,6 +255,15 @@
   async function anterior() { await irAHoja(indiceHoja - (dosPaginas ? 2 : 1), false); }
 
   async function irAActuacion(nro) {
+    if (modoRollo) {
+      const destino = document.getElementById('act-' + nro);
+      if (destino) {
+        destino.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        actuacionEnRollo = nro;
+        marcarIndiceActual();
+      }
+      return;
+    }
     await expandirHasta(nro);
     const idx = hojas.findIndex(h => h.actuacion === nro);
     if (idx >= 0) await irAHoja(idx, false);
@@ -338,8 +348,10 @@
     });
   }
 
-  function abrirPopover() {
-    const nro = actuacionActual();
+  let nroParaMarcar = null;
+
+  function abrirPopoverPara(nro, anclaEl) {
+    nroParaMarcar = nro;
     const m = marcas[nro];
     const t = textoActuacion(nro);
     $('notaTitulo').textContent = `Act. ${nro} — ${t.titulo}`.slice(0, 110);
@@ -347,36 +359,192 @@
     colorElegido = m ? m.color : COLORES[0];
     pintarColores();
 
-    const r = $('btnBanderita').getBoundingClientRect();
+    const r = (anclaEl || $('btnBanderita')).getBoundingClientRect();
     const pop = $('notaPopover');
     pop.hidden = false;
-    pop.style.top = Math.min(r.bottom + 8, window.innerHeight - 280) + 'px';
-    pop.style.left = Math.max(12, r.right - 270) + 'px';
+    pop.style.top = Math.min(r.bottom + 8, window.innerHeight - 300) + 'px';
+    pop.style.left = Math.max(12, Math.min(r.right - 270, window.innerWidth - 285)) + 'px';
     $('notaTexto').focus();
   }
-  function cerrarPopover() { $('notaPopover').hidden = true; }
+
+  function abrirPopover() { abrirPopoverPara(actuacionActual(), $('btnBanderita')); }
+  function cerrarPopover() { $('notaPopover').hidden = true; nroParaMarcar = null; }
+
+  function refrescarTrasMarcar() {
+    cerrarPopover();
+    pintarBanderitas();
+    actualizarBotonBanderita();
+    actualizarColoresBanderitasRollo();
+    pintarIndice($('filtroIndice').value);
+    marcarIndiceActual();
+  }
 
   $('btnBanderita').addEventListener('click', () => {
     if ($('notaPopover').hidden) abrirPopover(); else cerrarPopover();
   });
   $('notaCancelar').addEventListener('click', cerrarPopover);
   $('notaGuardar').addEventListener('click', () => {
-    marcas[actuacionActual()] = { color: colorElegido, nota: $('notaTexto').value.trim() };
+    const nro = nroParaMarcar || actuacionActual();
+    marcas[nro] = { color: colorElegido, nota: $('notaTexto').value.trim() };
     escribirMarcas(marcas);
-    cerrarPopover();
-    pintarBanderitas();
-    actualizarBotonBanderita();
-    pintarIndice($('filtroIndice').value);
-    marcarIndiceActual();
+    refrescarTrasMarcar();
   });
   $('notaQuitar').addEventListener('click', () => {
-    delete marcas[actuacionActual()];
+    const nro = nroParaMarcar || actuacionActual();
+    delete marcas[nro];
     escribirMarcas(marcas);
-    cerrarPopover();
-    pintarBanderitas();
-    actualizarBotonBanderita();
-    pintarIndice($('filtroIndice').value);
-    marcarIndiceActual();
+    refrescarTrasMarcar();
+  });
+
+  // ─── Modo lectura continua (scroll vertical) ───────────────────────
+  // Cada actuación se dibuja como un bloque; los PDFs se cargan recién
+  // cuando el bloque se acerca a la pantalla (IntersectionObserver), así
+  // abrir un expediente de 200 actuaciones no baja 200 documentos.
+  let observador = null;
+  const rendidas = new Set();
+
+  function armarRollo() {
+    const rollo = $('rollo');
+    rollo.innerHTML = '';
+    rendidas.clear();
+
+    actuaciones.forEach((a, i) => {
+      const nro = i + 1;
+      const bloque = document.createElement('section');
+      bloque.className = 'rollo-actuacion';
+      bloque.id = 'act-' + nro;
+      bloque.dataset.nro = String(nro);
+      bloque.innerHTML = `
+        <div class="rollo-cabecera">
+          <div class="rollo-cabecera-datos">
+            <div class="rollo-num">Actuación ${String(nro).padStart(3, '0')} · ${escapar(a.fecha || '')}</div>
+            <div class="rollo-tipo">${escapar(a.tipo || 'Actuación')}</div>
+            <div class="rollo-desc">${escapar(a.descripcion || '')}</div>
+          </div>
+          <button class="rollo-banderita" data-marcar="${nro}" title="Poner banderita">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>
+            </svg>
+          </button>
+        </div>
+        <div class="rollo-paginas"><div class="rollo-espera">Documento sin cargar</div></div>
+        <div class="rollo-pie">${a.urlPublica ? `<a href="${escapar(a.urlPublica)}" target="_blank" rel="noopener">${escapar(a.urlPublica)}</a>` : ''}</div>`;
+      rollo.appendChild(bloque);
+    });
+
+    rollo.querySelectorAll('[data-marcar]').forEach(b => {
+      b.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        abrirPopoverPara(Number(b.dataset.marcar), b);
+      });
+    });
+
+    if (observador) observador.disconnect();
+    observador = new IntersectionObserver(onVisible, {
+      root: rollo,
+      rootMargin: '600px 0px', // adelantarse a lo que viene
+    });
+    rollo.querySelectorAll('.rollo-actuacion').forEach(el => observador.observe(el));
+
+    rollo.addEventListener('scroll', alScrollear, { passive: true });
+    actualizarColoresBanderitasRollo();
+  }
+
+  async function onVisible(entradas) {
+    for (const e of entradas) {
+      if (!e.isIntersecting) continue;
+      const nro = Number(e.target.dataset.nro);
+      if (rendidas.has(nro)) continue;
+      rendidas.add(nro);
+      await renderizarActuacionEnRollo(nro, e.target);
+    }
+  }
+
+  async function renderizarActuacionEnRollo(nro, bloque) {
+    const cont = bloque.querySelector('.rollo-paginas');
+    cont.innerHTML = '<div class="rollo-espera">Cargando documento…</div>';
+    try {
+      const { doc, paginas } = await abrirDocumento(nro);
+      cont.innerHTML = '';
+      const anchoDisponible = Math.max(240, $('rollo').clientWidth - 40);
+      for (let p = 1; p <= paginas; p++) {
+        const pagina = await doc.getPage(p);
+        const base = pagina.getViewport({ scale: 1 });
+        const escala = (anchoDisponible / base.width) * zoom;
+        const vp = pagina.getViewport({ scale: escala });
+        const cont2 = document.createElement('div');
+        cont2.className = 'rollo-pagina';
+        const canvas = document.createElement('canvas');
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(vp.width * dpr);
+        canvas.height = Math.floor(vp.height * dpr);
+        canvas.style.width = Math.floor(vp.width) + 'px';
+        canvas.style.height = Math.floor(vp.height) + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cont2.appendChild(canvas);
+        cont.appendChild(cont2);
+        await pagina.render({ canvasContext: ctx, viewport: vp }).promise;
+      }
+    } catch (err) {
+      cont.innerHTML = `<div class="rollo-espera">No se pudo cargar: ${escapar(err.message || 'error')}</div>`;
+      rendidas.delete(nro); // permitir reintento al volver a pasar
+    }
+  }
+
+  // Mantener sincronizada la actuación "actual" según lo que se ve.
+  let temporizadorScroll;
+  function alScrollear() {
+    clearTimeout(temporizadorScroll);
+    temporizadorScroll = setTimeout(() => {
+      const rollo = $('rollo');
+      const limite = rollo.scrollTop + 120;
+      let actual = 1;
+      rollo.querySelectorAll('.rollo-actuacion').forEach(el => {
+        if (el.offsetTop <= limite) actual = Number(el.dataset.nro);
+      });
+      actuacionEnRollo = actual;
+      $('lectorPosicion').textContent = `Actuación ${actual} de ${actuaciones.length}`;
+      marcarIndiceActual();
+    }, 120);
+  }
+
+  function actualizarColoresBanderitasRollo() {
+    document.querySelectorAll('[data-marcar]').forEach(b => {
+      const m = marcas[Number(b.dataset.marcar)];
+      b.style.background = m ? m.color : '';
+      b.style.color = m ? '#fff' : '';
+      b.style.borderColor = m ? m.color : '';
+    });
+  }
+
+  let actuacionEnRollo = 1;
+  let modoRollo = localStorage.getItem('infocivil.modoLector') === 'rollo';
+
+  async function aplicarModo() {
+    const enRollo = modoRollo;
+    $('libro').hidden = enRollo;
+    $('rollo').hidden = !enRollo;
+    $('controles').classList.toggle('modo-rollo', enRollo);
+    $('modoTexto').textContent = enRollo ? 'Modo libro' : 'Lectura continua';
+    $('iconoModo').innerHTML = enRollo
+      ? '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'
+      : '<path d="M8 3v18M4 6h4M4 12h4M4 18h4"/><rect x="10" y="3" width="10" height="18" rx="1"/>';
+    localStorage.setItem('infocivil.modoLector', enRollo ? 'rollo' : 'libro');
+
+    if (enRollo) {
+      if (!$('rollo').children.length) armarRollo();
+      // Continuar donde se estaba leyendo en el modo libro.
+      const destino = document.getElementById('act-' + actuacionActual());
+      if (destino) destino.scrollIntoView({ block: 'start' });
+    } else {
+      await pintarHojas();
+    }
+  }
+
+  $('btnModo').addEventListener('click', async () => {
+    modoRollo = !modoRollo;
+    await aplicarModo();
   });
 
   // ─── Controles ─────────────────────────────────────────────────────
@@ -393,7 +561,25 @@
     zoom = Math.min(4, Math.max(0.5, Number(nuevo.toFixed(2))));
     localStorage.setItem('infocivil.zoomLector', String(zoom));
     actualizarZoomTexto();
-    await pintarHojas();
+    if (modoRollo) {
+      // Volver a dibujar solo lo que ya estaba renderizado, conservando la
+      // posición de lectura.
+      const actual = actuacionEnRollo;
+      rendidas.clear();
+      $('rollo').querySelectorAll('.rollo-actuacion').forEach(el => {
+        el.querySelector('.rollo-paginas').innerHTML = '<div class="rollo-espera">Documento sin cargar</div>';
+      });
+      const destino = document.getElementById('act-' + actual);
+      if (destino) destino.scrollIntoView({ block: 'start' });
+      // El observador vuelve a disparar la carga de lo visible.
+      if (observador) {
+        observador.disconnect();
+        observador = new IntersectionObserver(onVisible, { root: $('rollo'), rootMargin: '600px 0px' });
+        $('rollo').querySelectorAll('.rollo-actuacion').forEach(el => observador.observe(el));
+      }
+    } else {
+      await pintarHojas();
+    }
   }
   $('btnAcercar').addEventListener('click', () => aplicarZoom(zoom + 0.25));
   $('btnAlejar').addEventListener('click', () => aplicarZoom(zoom - 0.25));
@@ -413,12 +599,15 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea')) return;
+    if (e.key === 'Escape') { cerrarPopover(); return; }
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); aplicarZoom(zoom + 0.25); return; }
+    if (e.key === '-') { e.preventDefault(); aplicarZoom(zoom - 0.25); return; }
+    if (e.key === '0') { e.preventDefault(); aplicarZoom(1); return; }
+    // En lectura continua las flechas y AvPág las maneja el scroll normal
+    // del navegador: interceptarlas rompería la lectura.
+    if (modoRollo) return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); siguiente(); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); anterior(); }
-    else if (e.key === 'Escape') cerrarPopover();
-    else if (e.key === '+' || e.key === '=') { e.preventDefault(); aplicarZoom(zoom + 0.25); }
-    else if (e.key === '-') { e.preventDefault(); aplicarZoom(zoom - 0.25); }
-    else if (e.key === '0') { e.preventDefault(); aplicarZoom(1); }
   });
 
   // Cambio de ancho: pasar de spread a una página y viceversa.
