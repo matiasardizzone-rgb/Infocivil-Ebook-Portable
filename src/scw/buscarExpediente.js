@@ -45,9 +45,22 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
     page.locator('input[name="formPublica:buscarPorNumeroButton"]').click(),
   ]);
 
+  // Verificación de contenido real: un cid= en la URL no alcanza como señal
+  // de éxito — páginas de error/redirect genéricas del SCW también pueden
+  // traer un cid= en la URL (el de su propia conversación de servidor, no
+  // el de un expediente). Confirmamos que la página tenga la pinta real de
+  // un expediente: la palabra "Carátula" en algún lado, o la tabla de
+  // actuaciones presente.
+  async function pareceExpedienteReal() {
+    const texto = await page.evaluate(() => document.body.innerText || '');
+    if (/car[aá]tula/i.test(texto)) return true;
+    if (await page.locator('#expediente\\:action-table').count()) return true;
+    return false;
+  }
+
   // Caso 1: navegó directo al expediente.
   const cidEnUrl = page.url().match(/cid=(\d+)/);
-  if (cidEnUrl) {
+  if (cidEnUrl && (await pareceExpedienteReal())) {
     return { cid: cidEnUrl[1] };
   }
 
@@ -56,10 +69,9 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
   const links = page.locator('a[href*="expediente.seam?cid="], a[href*="cid="]');
   const totalLinks = await links.count();
   if (totalLinks === 0) {
-    // TODO: una vez visto el mensaje real de "no encontrado" en el sitio,
-    // detectarlo acá específicamente para devolver un error más claro que
-    // este genérico.
-    throw new Error('No se encontró el expediente (o cambió el formato de la página de resultados — revisar selectores).');
+    throw new Error(
+      `No se encontró el expediente ${numero}/${anio} en ${jurisdiccion} (o cambió el formato de la página de resultados — revisar selectores). Texto de la página: "${(await page.evaluate(() => document.body.innerText || '')).slice(0, 300).replace(/\s+/g, ' ')}"`
+    );
   }
   const href = await links.first().getAttribute('href');
   const cidMatch = (href || '').match(/cid=(\d+)/);
