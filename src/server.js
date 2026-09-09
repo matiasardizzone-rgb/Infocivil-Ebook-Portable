@@ -76,10 +76,24 @@ app.post('/api/buscar', async (req, res) => {
 
 // ─── Actuaciones de un expediente ya localizado ───────────────────────────
 // GET /api/expediente/:cid/actuaciones?sessionId=...
+//
+// El scrapeo se hace UNA SOLA VEZ por sesión y expediente: repetirlo sobre
+// la misma sesión devuelve resultados incompletos (comprobado: primera
+// consulta 205 actuaciones, segunda sobre la misma sesión apenas 5). La
+// causa es que tras recorrer las históricas la página queda en
+// actuacionesHistoricas.seam, y volver a expediente.seam con un cid ya
+// consumido no reconstruye el estado completo.
+// Para volver a scrapear de verdad (ej. para detectar actuaciones nuevas),
+// hay que abrir una sesión nueva con POST /api/buscar.
 app.get('/api/expediente/:cid/actuaciones', async (req, res) => {
   const { cid } = req.params;
   const s = requerirSesion(req, res);
   if (!s) return;
+
+  const cacheado = obtenerScrape(req.query.sessionId, cid);
+  if (cacheado) {
+    return res.json({ ok: true, cid, ...cacheado, desdeCache: true });
+  }
 
   const resultado = await scrapeActuaciones(s.page, s.scwBase, cid);
   guardarScrape(req.query.sessionId, cid, resultado);
