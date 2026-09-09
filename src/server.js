@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { cerrarBrowser } from './scw/browser.js';
-import { crearSesion, obtenerSesion, asociarCid, cerrarSesion, cerrarTodasLasSesiones } from './scw/sessions.js';
+import { crearSesion, obtenerSesion, asociarCid, cerrarSesion, cerrarTodasLasSesiones, guardarScrape, obtenerScrape } from './scw/sessions.js';
 import { buscarExpediente } from './scw/buscarExpediente.js';
 import { scrapeActuaciones } from './scw/scrapeActuaciones.js';
 import { descargarPdfs } from './scw/descargarActuaciones.js';
@@ -82,6 +82,7 @@ app.get('/api/expediente/:cid/actuaciones', async (req, res) => {
   if (!s) return;
 
   const resultado = await scrapeActuaciones(s.page, s.scwBase, cid);
+  guardarScrape(req.query.sessionId, cid, resultado);
   res.json({ ok: true, cid, ...resultado });
 });
 
@@ -99,7 +100,17 @@ app.get('/api/expediente/:cid/descargar/:formato', async (req, res) => {
   const s = requerirSesion(req, res);
   if (!s) return;
 
-  const { actuaciones, paginacionIncompleta, caratula } = await scrapeActuaciones(s.page, s.scwBase, cid);
+  // Reusar el scrapeo de esta misma sesión si ya se hizo (el flujo normal
+  // del front es buscar → ver actuaciones → descargar, así que casi siempre
+  // está). Volver a scrapear acá no solo duplicaba trabajo: fallaba, porque
+  // la página del navegador ya había quedado en actuacionesHistoricas.seam
+  // y el segundo recorrido traía apenas un puñado de actuaciones.
+  let resultado = obtenerScrape(req.query.sessionId, cid);
+  if (!resultado) {
+    resultado = await scrapeActuaciones(s.page, s.scwBase, cid);
+    guardarScrape(req.query.sessionId, cid, resultado);
+  }
+  const { actuaciones, paginacionIncompleta, caratula } = resultado;
   if (!actuaciones.length) {
     return res.status(404).json({ ok: false, error: 'No se encontraron actuaciones para este expediente.' });
   }

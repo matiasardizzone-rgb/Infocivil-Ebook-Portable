@@ -42,6 +42,25 @@ export function asociarCid(id, cid) {
   if (s) s.cid = cid;
 }
 
+// Guarda el resultado del scrapeo en la sesión para no repetirlo.
+//
+// Además de evitar trabajo duplicado (recorrer 200+ actuaciones de nuevo),
+// esto corrige un bug real: el segundo scrapeo se hacía sobre la misma
+// página del navegador, que para entonces ya había quedado en
+// actuacionesHistoricas.seam, y volver a expediente.seam con el mismo cid
+// no siempre reconstruye el estado correcto — devolvía apenas un puñado de
+// actuaciones en vez de todas.
+export function guardarScrape(id, cid, resultado) {
+  const s = sesiones.get(id);
+  if (s) s.scrape = { cid, resultado };
+}
+
+export function obtenerScrape(id, cid) {
+  const s = sesiones.get(id);
+  if (s && s.scrape && s.scrape.cid === cid) return s.scrape.resultado;
+  return null;
+}
+
 export async function cerrarSesion(id) {
   const s = sesiones.get(id);
   if (!s) return;

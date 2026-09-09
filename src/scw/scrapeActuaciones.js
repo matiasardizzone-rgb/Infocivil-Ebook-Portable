@@ -105,7 +105,15 @@ async function recorrerActuales(page) {
     pagina++;
     if (pagina > 500) { incompleta = true; break; } // resguardo duro
   }
-  return { filas: out, incompleta };
+  // El SCW lista las actuaciones de más nueva a más vieja, y las páginas se
+  // recorren en ese mismo orden — invertimos para dejar la lista de más
+  // vieja a más nueva, igual que hace la extensión (content.js:
+  // recorrerTodasLasPaginas → r.reverse()). Esto importa incluso teniendo
+  // un ordenamiento por fecha después: cuando varias actuaciones comparten
+  // la misma fecha, el orden entre ellas lo decide el orden de entrada
+  // (el sort es estable), así que sin este reverse quedaban invertidas
+  // respecto de lo que produce la extensión para el mismo expediente.
+  return { filas: out.reverse(), incompleta };
 }
 
 // ─── Actuaciones históricas ─────────────────────────────────────────────────
@@ -230,7 +238,9 @@ async function recorrerHistoricas(page) {
     pagina++;
     if (pagina > 500) { incompleta = true; break; }
   }
-  return { filas: out, incompleta };
+  // Mismo criterio que en las actuales: invertir para dejar de más vieja a
+  // más nueva (ver comentario en recorrerActuales).
+  return { filas: out.reverse(), incompleta };
 }
 
 // ─── Utilidad común ─────────────────────────────────────────────────────
