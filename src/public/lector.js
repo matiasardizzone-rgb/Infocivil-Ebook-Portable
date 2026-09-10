@@ -68,8 +68,13 @@
 
       pintarIndice();
       pintarBanderitas();
-      await expandirHasta(1);
-      await irAHoja(0, false);
+      // Solo preparar el libro si es el modo con el que se abre: si se
+      // entró directo a lectura continua, renderizar hojas que no se van a
+      // ver es trabajo (y descargas) al pedo.
+      if (!modoRollo) {
+        await expandirHasta(1);
+        await irAHoja(0, false);
+      }
 
       $('cargandoLector').hidden = true;
       await aplicarModo();
@@ -577,6 +582,13 @@
       const destino = document.getElementById('act-' + actuacionActual());
       if (destino) destino.scrollIntoView({ block: 'start' });
     } else {
+      // Al volver al libro desde el rollo, las hojas pueden no estar
+      // expandidas todavía (si se abrió directo en lectura continua), y
+      // conviene retomar por la actuación que se venía leyendo.
+      const objetivo = actuacionEnRollo || 1;
+      await expandirHasta(objetivo);
+      const idx = hojas.findIndex(h => h.actuacion === objetivo);
+      if (idx >= 0) indiceHoja = idx;
       await pintarHojas();
     }
   }

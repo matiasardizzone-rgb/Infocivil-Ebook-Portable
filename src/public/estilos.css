@@ -68,7 +68,7 @@ body {
   padding: 40px 20px;
 }
 .ancho {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 28px 20px 48px;
 }
@@ -175,9 +175,13 @@ select.control { margin-bottom: 16px; cursor: pointer; }
 /* ─── Grilla de acciones ─────────────────────────────────────────── */
 .acciones {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* Con cinco acciones, tres columnas dan 3+2 — más equilibrado que el
+     4+1 que dejaba una tarjeta huérfana en la fila de abajo. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
+@media (max-width: 900px) { .acciones { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .acciones { grid-template-columns: 1fr; } }
 .accion {
   display: flex; flex-direction: column;
   text-align: left;

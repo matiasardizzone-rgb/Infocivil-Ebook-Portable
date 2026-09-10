@@ -57,8 +57,7 @@ export async function buscarExpediente(page, scwBase, { jurisdiccion, numero, an
     // respecto de cómo estaba antes de tocar "Consultar" (comparar contra
     // un umbral fijo de texto no alcanza: home.seam ya tiene de por sí
     // bastante texto de header/menú/footer).
-    const cambio = await esperarPaginaCambiada(htmlAntes);
-    console.log(`[buscarExpediente] ¿La página cambió tras el click? ${cambio} — URL: ${page.url()}`);
+    await esperarPaginaCambiada(htmlAntes);
   }
 
   async function esperarPaginaCambiada(htmlAntes, timeoutMs = 20000) {
