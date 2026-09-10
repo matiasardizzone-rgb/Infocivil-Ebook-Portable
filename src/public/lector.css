@@ -144,13 +144,28 @@
 .hoja-lienzo canvas { display: block; }
 
 .hoja-pie {
-  padding: 4px 12px 5px;
+  padding: 5px 10px 6px;
   border-top: 1px solid #ece5d6;
-  font-size: 8.5px; color: #8a7f6d;
-  text-align: center;
+  font-size: 10px; color: #6b6252;
   flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0;
+}
+.hoja-pie a {
+  color: #2c5f9e; text-decoration: none;
+  flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.hoja-pie a:hover { text-decoration: underline; }
+.copiar-link {
+  flex-shrink: 0;
+  border: 1px solid #ddd5c4; background: #fff;
+  border-radius: 4px; cursor: pointer;
+  font-size: 9.5px; font-family: inherit; color: #6b6252;
+  padding: 3px 7px;
+}
+.copiar-link:hover { background: #f3efe4; color: #3a3226; }
+.copiar-link.copiado { background: #e8f8ee; border-color: #b8e0c8; color: #1a7a4a; }
 .hoja-pie a { color: #4a6fa5; text-decoration: none; }
 .hoja-pie a:hover { text-decoration: underline; }
 
@@ -321,11 +336,24 @@
   border-radius: 6px;
 }
 .rollo-pie {
-  text-align: center; font-size: 9px; color: #a89d8a;
-  padding: 4px 10px 0;
+  font-size: 10.5px; color: #c2b8a6;
+  padding: 6px 12px 0;
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+}
+.rollo-pie a {
+  color: #a9c4e8; text-decoration: none;
+  flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.rollo-pie a { color: #b9cbe6; text-decoration: none; }
+.rollo-pie a:hover { text-decoration: underline; }
+.rollo-pie .copiar-link {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.2);
+  color: #d4cbba;
+}
+.rollo-pie .copiar-link:hover { background: rgba(255,255,255,.2); color: #fff; }
+.rollo-pie .copiar-link.copiado { background: #1a7a4a; border-color: #1a7a4a; color: #fff; }
 
 .boton-modo {
   display: inline-flex; align-items: center; gap: 7px;

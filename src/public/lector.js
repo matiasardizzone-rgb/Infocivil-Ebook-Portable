@@ -165,7 +165,38 @@
     const totalDeEsta = hojas.filter(h => h.actuacion === hoja.actuacion).length;
     elEnc.innerHTML = `<strong>Act. ${hoja.actuacion} · ${escapar(t.titulo).slice(0, 90)}</strong>
       ${escapar(t.fecha)}${totalDeEsta > 1 ? ` · pág. ${hoja.paginaEnDoc} de ${totalDeEsta}` : ''}`;
-    elPie.innerHTML = t.url ? `<a href="${escapar(t.url)}" target="_blank" rel="noopener">${escapar(t.url)}</a>` : '';
+    elPie.innerHTML = t.url ? pieConLink(t.url) : '';
+    conectarCopiar(elPie);
+  }
+
+  // El link a la consulta pública del documento: es lo que permite citar la
+  // fuente o abrirla en el SCW, así que tiene que verse y poder copiarse,
+  // no quedar como una línea ilegible al pie.
+  function pieConLink(url) {
+    return `<a href="${escapar(url)}" target="_blank" rel="noopener" title="${escapar(url)}">${escapar(url)}</a>
+            <button class="copiar-link" data-copiar="${escapar(url)}" title="Copiar el enlace">Copiar</button>`;
+  }
+
+  function conectarCopiar(contenedor) {
+    contenedor.querySelectorAll('[data-copiar]').forEach(b => {
+      b.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const url = b.dataset.copiar;
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch {
+          // Contextos sin permiso de portapapeles (ej. http sin TLS en
+          // algunos navegadores): se cae a la selección manual.
+          const ta = document.createElement('textarea');
+          ta.value = url; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); ta.remove();
+        }
+        b.textContent = 'Copiado';
+        b.classList.add('copiado');
+        setTimeout(() => { b.textContent = 'Copiar'; b.classList.remove('copiado'); }, 1600);
+      });
+    });
   }
 
   function escapar(s) {
@@ -428,9 +459,11 @@
           </button>
         </div>
         <div class="rollo-paginas"><div class="rollo-espera">Documento sin cargar</div></div>
-        <div class="rollo-pie">${a.urlPublica ? `<a href="${escapar(a.urlPublica)}" target="_blank" rel="noopener">${escapar(a.urlPublica)}</a>` : ''}</div>`;
+        <div class="rollo-pie">${a.urlPublica ? pieConLink(a.urlPublica) : ''}</div>`;
       rollo.appendChild(bloque);
     });
+
+    conectarCopiar(rollo);
 
     rollo.querySelectorAll('[data-marcar]').forEach(b => {
       b.addEventListener('click', (ev) => {
@@ -519,7 +552,13 @@
   }
 
   let actuacionEnRollo = 1;
-  let modoRollo = localStorage.getItem('infocivil.modoLector') === 'rollo';
+  // El modo puede venir elegido desde el menú del expediente (son dos
+  // módulos distintos ahí); si no viene, se usa el último que se haya
+  // usado.
+  const modoPedido = params.get('modo');
+  let modoRollo = modoPedido
+    ? modoPedido === 'rollo'
+    : localStorage.getItem('infocivil.modoLector') === 'rollo';
 
   async function aplicarModo() {
     const enRollo = modoRollo;

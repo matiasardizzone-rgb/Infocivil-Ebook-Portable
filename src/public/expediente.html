@@ -44,7 +44,17 @@
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
         </svg>
         <span class="accion-titulo">Leer como libro</span>
-        <span class="accion-desc">Lectura tipo expediente en papel, con banderitas y anotaciones.</span>
+        <span class="accion-desc">Dos páginas enfrentadas y paso de hoja, como el expediente en papel. Para hojear y ubicarse.</span>
+      </button>
+
+      <button class="accion accion--destacada" id="btnContinua">
+        <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <rect x="5" y="2" width="14" height="9" rx="1"/>
+          <rect x="5" y="13" width="14" height="9" rx="1"/>
+          <path d="M12 11.5v1.5"/>
+        </svg>
+        <span class="accion-titulo">Lectura continua</span>
+        <span class="accion-desc">Todas las actuaciones una debajo de otra, con scroll. Para leer de corrido.</span>
       </button>
 
       <button class="accion" data-formato="unificado-indice">
@@ -152,7 +162,12 @@ document.querySelectorAll('.accion[data-formato]').forEach(btn => {
 });
 
 $('btnEbook').addEventListener('click', () => {
-  const p = new URLSearchParams({ cid, sessionId, jurisdiccion, numero, anio });
+  const p = new URLSearchParams({ cid, sessionId, jurisdiccion, numero, anio, modo: 'libro' });
+  location.href = '/leer.html?' + p.toString();
+});
+
+$('btnContinua').addEventListener('click', () => {
+  const p = new URLSearchParams({ cid, sessionId, jurisdiccion, numero, anio, modo: 'rollo' });
   location.href = '/leer.html?' + p.toString();
 });
 
