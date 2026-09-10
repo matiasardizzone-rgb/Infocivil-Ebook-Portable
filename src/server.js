@@ -28,7 +28,7 @@ import { registrar, ipDe, diasDisponibles, leerDia } from './lib/auditoria.js';
 import {
   hayAdmins, listarAdmins, crearAdmin, eliminarAdmin, cambiarContrasena,
   verificar, crearSesion as crearSesionAdmin, usuarioDeSesion, cerrarSesion as cerrarSesionAdmin,
-  leerCookie,
+  leerCookie, nombreReal,
 } from './lib/admins.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -314,7 +314,7 @@ app.post('/api/admin/ingresar', (req, res) => {
     registrar({ operacion: 'admin-ingreso-fallido', ip: ipDe(req), usuario: String(usuario || '') });
     return res.status(401).json({ ok: false, error: 'Usuario o contraseña incorrectos.' });
   }
-  const token = crearSesionAdmin(String(usuario).trim().toLowerCase());
+  const token = crearSesionAdmin(nombreReal(usuario) || String(usuario).trim());
   res.set('Set-Cookie', `${COOKIE_SESION}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${8 * 60 * 60}`);
   registrar({ operacion: 'admin-ingreso', ip: ipDe(req), usuario });
   res.json({ ok: true, usuario });
