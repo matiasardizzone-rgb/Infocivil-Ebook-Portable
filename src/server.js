@@ -24,6 +24,12 @@ import { descargarPdfs } from './scw/descargarActuaciones.js';
 import { generarPdfUnificado } from './lib/unificador.js';
 import { buildZip } from './lib/zip.js';
 import { JURISDICCIONES } from './scw/jurisdicciones.js';
+import { registrar, ipDe, diasDisponibles, leerDia } from './lib/auditoria.js';
+import {
+  hayAdmins, listarAdmins, crearAdmin, eliminarAdmin, cambiarContrasena,
+  verificar, crearSesion as crearSesionAdmin, usuarioDeSesion, cerrarSesion as cerrarSesionAdmin,
+  leerCookie,
+} from './lib/admins.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -78,9 +84,21 @@ app.post('/api/buscar', async (req, res) => {
   try {
     const { cid, multiplesResultados } = await buscarExpediente(page, scwBase, { jurisdiccion, numero, anio });
     asociarCid(sessionId, cid);
+    registrar({
+      operacion: 'buscar',
+      expediente: `${jurisdiccion} ${numero}/${anio}`,
+      cid,
+      ip: ipDe(req),
+    });
     res.json({ ok: true, cid, sessionId, multiplesResultados });
   } catch (err) {
     await cerrarSesion(sessionId);
+    registrar({
+      operacion: 'buscar-fallida',
+      expediente: `${jurisdiccion} ${numero}/${anio}`,
+      ip: ipDe(req),
+      detalle: { error: err.message },
+    });
     throw err;
   }
 });
@@ -108,6 +126,13 @@ app.get('/api/expediente/:cid/actuaciones', async (req, res) => {
 
   const resultado = await scrapeActuaciones(s.page, s.scwBase, cid);
   guardarScrape(req.query.sessionId, cid, resultado);
+  registrar({
+    operacion: 'leer-actuaciones',
+    expediente: resultado.caratula ? resultado.caratula.slice(0, 80) : null,
+    cid,
+    ip: ipDe(req),
+    detalle: { cantidad: resultado.actuaciones.length },
+  });
   res.json({ ok: true, cid, ...resultado });
 });
 
@@ -143,6 +168,15 @@ app.get('/api/expediente/:cid/descargar/:formato', async (req, res) => {
   const tituloExpediente = caratula || `Expediente ${cid}`;
   const nombreBase = sanitizarNombre(tituloExpediente).slice(0, 60);
   const conBytes = await descargarPdfs(s.page, actuaciones);
+  const bajados = conBytes.filter(a => a.bytes).length;
+
+  registrar({
+    operacion: 'descargar-' + formato,
+    expediente: tituloExpediente.slice(0, 80),
+    cid,
+    ip: ipDe(req),
+    detalle: { actuaciones: conBytes.length, obtenidas: bajados, faltantes: conBytes.length - bajados },
+  });
 
   if (formato === 'zip') {
     const entradas = conBytes
@@ -228,6 +262,124 @@ app.get('/api/expediente/:cid/documento/:indice', async (req, res) => {
 app.delete('/api/sesion/:sessionId', async (req, res) => {
   await cerrarSesion(req.params.sessionId);
   res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// PANEL DE AUDITORÍA
+// ═══════════════════════════════════════════════════════════════════════
+
+const COOKIE_SESION = 'infocivil_admin';
+
+function adminActual(req) {
+  return usuarioDeSesion(leerCookie(req, COOKIE_SESION) || '');
+}
+
+function requerirAdmin(req, res) {
+  const usuario = adminActual(req);
+  if (!usuario) {
+    res.status(401).json({ ok: false, error: 'Sesión no iniciada.' });
+    return null;
+  }
+  return usuario;
+}
+
+// Estado inicial: si no hay ningún administrador, el panel ofrece crear el
+// primero. Así no hay ninguna contraseña por defecto ni escrita en el
+// repositorio o en la configuración del servicio.
+app.get('/api/admin/estado', (req, res) => {
+  res.json({
+    ok: true,
+    inicializado: hayAdmins(),
+    usuario: adminActual(req),
+  });
+});
+
+app.post('/api/admin/inicializar', (req, res) => {
+  if (hayAdmins()) {
+    return res.status(409).json({ ok: false, error: 'El panel ya tiene administradores.' });
+  }
+  const { usuario, contrasena } = req.body || {};
+  try {
+    crearAdmin(usuario, contrasena, 'instalación inicial');
+    registrar({ operacion: 'admin-inicializar', ip: ipDe(req), usuario });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/ingresar', (req, res) => {
+  const { usuario, contrasena } = req.body || {};
+  if (!verificar(usuario, contrasena)) {
+    registrar({ operacion: 'admin-ingreso-fallido', ip: ipDe(req), usuario: String(usuario || '') });
+    return res.status(401).json({ ok: false, error: 'Usuario o contraseña incorrectos.' });
+  }
+  const token = crearSesionAdmin(String(usuario).trim().toLowerCase());
+  res.set('Set-Cookie', `${COOKIE_SESION}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${8 * 60 * 60}`);
+  registrar({ operacion: 'admin-ingreso', ip: ipDe(req), usuario });
+  res.json({ ok: true, usuario });
+});
+
+app.post('/api/admin/salir', (req, res) => {
+  const token = leerCookie(req, COOKIE_SESION);
+  if (token) cerrarSesionAdmin(token);
+  res.set('Set-Cookie', `${COOKIE_SESION}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/auditoria', async (req, res) => {
+  if (!requerirAdmin(req, res)) return;
+  const dias = diasDisponibles();
+  const dia = req.query.dia || dias[0];
+  if (!dia) return res.json({ ok: true, dias: [], dia: null, entradas: [] });
+  const entradas = await leerDia(dia, { texto: req.query.q || '', limite: 1000 });
+  res.json({ ok: true, dias, dia, entradas });
+});
+
+app.get('/api/admin/admins', (req, res) => {
+  if (!requerirAdmin(req, res)) return;
+  res.json({ ok: true, admins: listarAdmins() });
+});
+
+app.post('/api/admin/admins', (req, res) => {
+  const yo = requerirAdmin(req, res);
+  if (!yo) return;
+  const { usuario, contrasena } = req.body || {};
+  try {
+    crearAdmin(usuario, contrasena, yo);
+    registrar({ operacion: 'admin-crear', ip: ipDe(req), usuario: yo, detalle: { nuevo: usuario } });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete('/api/admin/admins/:usuario', (req, res) => {
+  const yo = requerirAdmin(req, res);
+  if (!yo) return;
+  try {
+    eliminarAdmin(req.params.usuario);
+    registrar({ operacion: 'admin-eliminar', ip: ipDe(req), usuario: yo, detalle: { eliminado: req.params.usuario } });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/contrasena', (req, res) => {
+  const yo = requerirAdmin(req, res);
+  if (!yo) return;
+  const { actual, nueva } = req.body || {};
+  if (!verificar(yo, actual)) {
+    return res.status(401).json({ ok: false, error: 'La contraseña actual no es correcta.' });
+  }
+  try {
+    cambiarContrasena(yo, nueva);
+    registrar({ operacion: 'admin-cambio-contrasena', ip: ipDe(req), usuario: yo });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
 });
 
 // ─── Manejo de errores ─────────────────────────────────────────────────────

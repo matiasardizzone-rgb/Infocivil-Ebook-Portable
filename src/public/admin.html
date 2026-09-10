@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoría — Infocivil Ebook</title>
+<link rel="stylesheet" href="/estilos.css">
+<style>
+  .tabla { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--blanco); }
+  .tabla th, .tabla td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--borde-suave); }
+  .tabla th { background: var(--azul-palido); font-weight: 600; color: var(--texto-suave); font-size: 12px;
+              position: sticky; top: 0; }
+  .tabla td { vertical-align: top; }
+  .tabla tr:hover td { background: #fafcfe; }
+  .tabla-marco { border: 1px solid var(--borde); border-radius: var(--radio); overflow: auto; max-height: 62vh; }
+  .op { font-weight: 600; white-space: nowrap; }
+  .op--falla { color: var(--error); }
+  .op--admin { color: #7a4a1a; }
+  .mono { font-family: Consolas, monospace; font-size: 12px; color: var(--texto-suave); white-space: nowrap; }
+  .filtros { display: flex; gap: 10px; align-items: end; margin-bottom: 14px; flex-wrap: wrap; }
+  .filtro-campo { display: flex; flex-direction: column; gap: 4px; }
+  .filtro-campo .control { width: auto; min-width: 180px; margin: 0; }
+  .pestanias { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--borde); }
+  .pestania { padding: 9px 16px; border: none; background: none; cursor: pointer; font-family: inherit;
+              font-size: 13.5px; color: var(--texto-suave); border-bottom: 2px solid transparent; }
+  .pestania--activa { color: var(--azul); border-bottom-color: var(--azul); font-weight: 600; }
+  .caja-login { max-width: 380px; margin: 40px auto; }
+  .admin-fila { display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+                background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--radio);
+                margin-bottom: 8px; }
+  .admin-datos { flex: 1; }
+  .admin-usuario { font-weight: 600; font-size: 14px; }
+  .admin-meta { font-size: 12px; color: var(--texto-tenue); }
+  .detalle { font-size: 11.5px; color: var(--texto-tenue); }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-contenido">
+    <svg class="escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <path d="M12 3v18M7 7h10M5 7l-2.5 6a3.5 3.5 0 0 0 5 0L5 7zM19 7l-2.5 6a3.5 3.5 0 0 0 5 0L19 7z"/>
+      <path d="M8 21h8"/>
+    </svg>
+    <div>
+      <div class="barra-titulo">Infocivil Ebook · Auditoría</div>
+      <div class="barra-sub">Poder Judicial de la Nación · Cámara Civil</div>
+    </div>
+    <div class="barra-acciones" id="barraAcciones"></div>
+  </div>
+</header>
+
+<main class="ancho">
+
+  <!-- Alta del primer administrador -->
+  <section id="vistaInicial" hidden>
+    <div class="tarjeta caja-login">
+      <h1 class="tarjeta-titulo">Configuración inicial</h1>
+      <p class="tarjeta-ayuda">No hay administradores todavía. Creá el primero para poder ver el registro de auditoría.</p>
+      <label class="etiqueta" for="iniUsuario">Usuario</label>
+      <input id="iniUsuario" class="control" type="text" autocomplete="username" placeholder="sytec">
+      <div style="height:12px"></div>
+      <label class="etiqueta" for="iniClave">Contraseña</label>
+      <input id="iniClave" class="control" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres">
+      <div style="height:12px"></div>
+      <label class="etiqueta" for="iniClave2">Repetir contraseña</label>
+      <input id="iniClave2" class="control" type="password" autocomplete="new-password">
+      <div style="height:18px"></div>
+      <button class="boton-primario" id="btnInicializar">Crear administrador</button>
+      <div id="estadoInicial" class="estado" role="status"></div>
+    </div>
+  </section>
+
+  <!-- Ingreso -->
+  <section id="vistaLogin" hidden>
+    <div class="tarjeta caja-login">
+      <h1 class="tarjeta-titulo">Ingreso</h1>
+      <p class="tarjeta-ayuda">Acceso restringido al registro de auditoría.</p>
+      <label class="etiqueta" for="logUsuario">Usuario</label>
+      <input id="logUsuario" class="control" type="text" autocomplete="username">
+      <div style="height:12px"></div>
+      <label class="etiqueta" for="logClave">Contraseña</label>
+      <input id="logClave" class="control" type="password" autocomplete="current-password">
+      <div style="height:18px"></div>
+      <button class="boton-primario" id="btnIngresar">Ingresar</button>
+      <div id="estadoLogin" class="estado" role="status"></div>
+    </div>
+  </section>
+
+  <!-- Panel -->
+  <section id="vistaPanel" hidden>
+    <div class="pestanias">
+      <button class="pestania pestania--activa" data-tab="registro">Registro de operaciones</button>
+      <button class="pestania" data-tab="admins">Administradores</button>
+      <button class="pestania" data-tab="cuenta">Mi cuenta</button>
+    </div>
+
+    <div id="tabRegistro">
+      <div class="filtros">
+        <div class="filtro-campo">
+          <label class="etiqueta" for="selDia">Día</label>
+          <select id="selDia" class="control"></select>
+        </div>
+        <div class="filtro-campo">
+          <label class="etiqueta" for="txtFiltro">Buscar</label>
+          <input id="txtFiltro" class="control" type="search" placeholder="expediente, IP, operación…">
+        </div>
+        <button class="boton-secundario" id="btnRecargar">Actualizar</button>
+        <button class="boton-secundario" id="btnExportar">Exportar CSV</button>
+      </div>
+      <div class="tabla-marco">
+        <table class="tabla">
+          <thead><tr>
+            <th>Fecha y hora</th><th>Operación</th><th>Expediente</th><th>IP</th><th>Detalle</th>
+          </tr></thead>
+          <tbody id="cuerpoTabla"></tbody>
+        </table>
+      </div>
+      <p class="pie-nota" id="resumenTabla"></p>
+    </div>
+
+    <div id="tabAdmins" hidden>
+      <div id="listaAdmins"></div>
+      <div class="tarjeta" style="max-width:420px; margin-top:18px">
+        <h2 class="tarjeta-titulo" style="font-size:15px">Nuevo administrador</h2>
+        <label class="etiqueta" for="nuevoUsuario">Usuario</label>
+        <input id="nuevoUsuario" class="control" type="text" autocomplete="off">
+        <div style="height:12px"></div>
+        <label class="etiqueta" for="nuevaClave">Contraseña</label>
+        <input id="nuevaClave" class="control" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres">
+        <div style="height:16px"></div>
+        <button class="boton-primario" id="btnCrearAdmin">Crear</button>
+        <div id="estadoAdmins" class="estado" role="status"></div>
+      </div>
+    </div>
+
+    <div id="tabCuenta" hidden>
+      <div class="tarjeta" style="max-width:420px">
+        <h2 class="tarjeta-titulo" style="font-size:15px">Cambiar mi contraseña</h2>
+        <label class="etiqueta" for="claveActual">Contraseña actual</label>
+        <input id="claveActual" class="control" type="password" autocomplete="current-password">
+        <div style="height:12px"></div>
+        <label class="etiqueta" for="claveNueva">Contraseña nueva</label>
+        <input id="claveNueva" class="control" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres">
+        <div style="height:16px"></div>
+        <button class="boton-primario" id="btnCambiarClave">Cambiar</button>
+        <div id="estadoCuenta" class="estado" role="status"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="/admin.js"></script>
+</body>
+</html>
