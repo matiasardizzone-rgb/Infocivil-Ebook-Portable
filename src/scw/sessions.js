@@ -61,6 +61,23 @@ export function obtenerScrape(id, cid) {
   return null;
 }
 
+// Los vinculados (incidentes) se cachean aparte del scrapeo de actuaciones:
+// se leen abriendo una solapa distinta, y no siempre hacen falta. Se guarda
+// por cid porque una misma sesión puede recorrer el principal y después
+// alguno de sus incidentes.
+export function guardarVinculados(id, cid, resultado) {
+  const s = sesiones.get(id);
+  if (!s) return;
+  if (!s.vinculados) s.vinculados = new Map();
+  s.vinculados.set(cid, resultado);
+}
+
+export function obtenerVinculados(id, cid) {
+  const s = sesiones.get(id);
+  if (s && s.vinculados && s.vinculados.has(cid)) return s.vinculados.get(cid);
+  return null;
+}
+
 export async function cerrarSesion(id) {
   const s = sesiones.get(id);
   if (!s) return;

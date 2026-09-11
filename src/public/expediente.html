@@ -38,6 +38,11 @@
 
     <div id="avisos"></div>
 
+    <section id="seccionVinculados" hidden>
+      <h2 class="seccion-titulo">Incidentes y expedientes vinculados</h2>
+      <div id="listaVinculados"></div>
+    </section>
+
     <div class="acciones">
       <button class="accion accion--destacada" id="btnEbook">
         <svg class="accion-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
@@ -149,6 +154,71 @@ async function cargarExpediente() {
   }
 }
 cargarExpediente();
+
+// ─── Incidentes y vinculados ────────────────────────────────────────
+// Se piden aparte de las actuaciones porque viven en otra solapa del SCW
+// y tardan lo suyo: así la pantalla ya es usable mientras llegan.
+async function cargarVinculados() {
+  try {
+    const r = await fetch(`/api/expediente/${encodeURIComponent(cid)}/vinculados?sessionId=${encodeURIComponent(sessionId)}`);
+    const d = await r.json();
+    if (!d.ok || !d.vinculados || !d.vinculados.length) return;
+
+    $('seccionVinculados').hidden = false;
+    $('listaVinculados').innerHTML = d.vinculados.map(v => `
+      <div class="vinculado">
+        <div class="vinculado-datos">
+          <div class="vinculado-id">${escapar(v.expediente)}</div>
+          <div class="vinculado-caratula">${escapar(v.caratula || '')}</div>
+        </div>
+        <button class="boton-secundario" data-abrir="${escapar(v.expediente)}">Abrir</button>
+      </div>`).join('');
+
+    $('listaVinculados').querySelectorAll('[data-abrir]').forEach(b => {
+      b.addEventListener('click', () => abrirVinculado(b, b.dataset.abrir));
+    });
+  } catch {
+    // Que falle la lectura de vinculados no debe estropear la pantalla:
+    // el expediente principal sigue siendo perfectamente usable.
+  }
+}
+
+async function abrirVinculado(boton, expediente) {
+  boton.disabled = true;
+  const textoOriginal = boton.textContent;
+  boton.textContent = 'Abriendo…';
+  mostrarEstado('Abriendo ' + expediente + '… puede demorar unos segundos.', 'cargando');
+  try {
+    const r = await fetch(`/api/expediente/${encodeURIComponent(cid)}/abrir-vinculado`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, expediente }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'No se pudo abrir el incidente.');
+
+    // El incidente pasa a ser el expediente en pantalla: mismo lector,
+    // mismas descargas. Se conserva número y año del principal y se agrega
+    // el sufijo del incidente para mostrarlo bien.
+    const sufijo = (expediente.match(/\/(\d+)\s*$/) || [])[1] || '';
+    const p = new URLSearchParams({
+      cid: d.cid, sessionId,
+      jurisdiccion, numero, anio: anio + (sufijo ? '/' + sufijo : ''),
+    });
+    location.href = '/expediente.html?' + p.toString();
+  } catch (e) {
+    mostrarEstado(e.message, 'error');
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
+}
+
+function escapar(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+cargarVinculados();
 
 // Las descargas se disparan navegando a la URL del endpoint: el servidor
 // responde con Content-Disposition: attachment, así que el navegador la

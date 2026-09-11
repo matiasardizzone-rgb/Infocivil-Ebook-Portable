@@ -263,3 +263,28 @@ select.control { margin-bottom: 16px; cursor: pointer; }
   border-radius: var(--radio);
 }
 .vacio .pie-nota { margin-top: 8px; }
+
+/* ─── Incidentes y vinculados ────────────────────────────────────── */
+.seccion-titulo {
+  font-size: 14px; font-weight: 600; color: var(--texto-suave);
+  margin-bottom: 10px;
+}
+.vinculado {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--azul-claro);
+  border-radius: var(--radio);
+  padding: 13px 16px;
+  margin-bottom: 8px;
+}
+.vinculado-datos { flex: 1; min-width: 0; }
+.vinculado-id { font-size: 12.5px; font-weight: 600; color: var(--azul); margin-bottom: 2px; }
+.vinculado-caratula { font-size: 12.5px; color: var(--texto-suave); line-height: 1.4; }
+#seccionVinculados { margin-bottom: 22px; }
+
+.control--angosto { max-width: 72px; text-align: center; }
+.ayuda-campo {
+  font-size: 11.5px; color: var(--texto-tenue);
+  margin: -14px 0 18px; line-height: 1.45;
+}

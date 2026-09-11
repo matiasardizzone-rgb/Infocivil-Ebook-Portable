@@ -36,12 +36,15 @@
         <option value="">Cargando jurisdicciones…</option>
       </select>
 
-      <label class="etiqueta" for="numero">Número / Año</label>
+      <label class="etiqueta" for="numero">Número / Año / Incidente</label>
       <div class="fila-numero">
         <input id="numero" class="control" type="text" inputmode="numeric" maxlength="9" placeholder="12345" required>
         <span class="barra-diagonal">/</span>
         <input id="anio" class="control" type="text" inputmode="numeric" maxlength="4" placeholder="2021" required>
+        <span class="barra-diagonal">/</span>
+        <input id="incidente" class="control control--angosto" type="text" inputmode="numeric" maxlength="3" placeholder="—" title="Número de incidente (opcional)">
       </div>
+      <p class="ayuda-campo">El incidente es opcional. Si lo dejás vacío se abre el expediente principal, donde vas a ver listados todos sus incidentes.</p>
 
       <button id="btnConsultar" class="boton-primario" type="submit">Consultar</button>
     </form>
@@ -89,6 +92,7 @@ $('formBuscar').addEventListener('submit', async (ev) => {
   const jurisdiccion = $('jurisdiccion').value.trim();
   const numero = $('numero').value.trim();
   const anio = $('anio').value.trim();
+  const incidente = $('incidente').value.trim();
 
   if (!jurisdiccion) return mostrarEstado('Elegí una jurisdicción.', 'error');
   if (!numero || !anio) return mostrarEstado('Completá número y año.', 'error');
@@ -97,6 +101,9 @@ $('formBuscar').addEventListener('submit', async (ev) => {
   mostrarEstado('Buscando el expediente en el SCW… puede demorar unos segundos.', 'cargando');
 
   try {
+    // Siempre se busca el principal: el formulario del SCW solo acepta
+    // número y año, así que a los incidentes se llega desde la solapa
+    // "Vinculados" del principal (ver scw/vinculados.js).
     const r = await fetch('/api/buscar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,10 +112,31 @@ $('formBuscar').addEventListener('submit', async (ev) => {
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'No se pudo completar la búsqueda.');
 
+    let cid = data.cid;
+    let anioMostrado = anio;
+
+    if (incidente) {
+      mostrarEstado(`Abriendo el incidente ${numero}/${anio}/${incidente}…`, 'cargando');
+      const buscado = `${jurisdiccion} ${numero}/${anio}/${incidente}`;
+      const r2 = await fetch(`/api/expediente/${encodeURIComponent(cid)}/abrir-vinculado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: data.sessionId, expediente: buscado }),
+      });
+      const d2 = await r2.json();
+      if (!d2.ok) {
+        throw new Error(
+          `${d2.error || 'No se pudo abrir el incidente.'} Probá sin el número de incidente: en la pantalla del expediente vas a ver los que existen.`
+        );
+      }
+      cid = d2.cid;
+      anioMostrado = anio + '/' + incidente;
+    }
+
     const params = new URLSearchParams({
-      cid: data.cid,
+      cid,
       sessionId: data.sessionId,
-      jurisdiccion, numero, anio,
+      jurisdiccion, numero, anio: anioMostrado,
     });
     location.href = '/expediente.html?' + params.toString();
   } catch (e) {

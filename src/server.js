@@ -17,7 +17,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { cerrarBrowser } from './scw/browser.js';
-import { crearSesion, obtenerSesion, asociarCid, cerrarSesion, cerrarTodasLasSesiones, guardarScrape, obtenerScrape } from './scw/sessions.js';
+import { crearSesion, obtenerSesion, asociarCid, cerrarSesion, cerrarTodasLasSesiones, guardarScrape, obtenerScrape, guardarVinculados, obtenerVinculados } from './scw/sessions.js';
+import { leerVinculados, abrirVinculado } from './scw/vinculados.js';
 import { buscarExpediente } from './scw/buscarExpediente.js';
 import { scrapeActuaciones } from './scw/scrapeActuaciones.js';
 import { descargarPdfs } from './scw/descargarActuaciones.js';
@@ -262,6 +263,62 @@ app.get('/api/expediente/:cid/documento/:indice', async (req, res) => {
 app.delete('/api/sesion/:sessionId', async (req, res) => {
   await cerrarSesion(req.params.sessionId);
   res.json({ ok: true });
+});
+
+// ─── Vinculados (incidentes) ───────────────────────────────────────────────
+// Los incidentes se numeran <numero>/<anio>/<n> y NO se pueden buscar
+// directo: el formulario de la Consulta Publica solo acepta numero y anio.
+// Se llega a ellos desde la solapa "Vinculados" del principal, que carga su
+// contenido por AJAX.
+//
+// GET /api/expediente/:cid/vinculados?sessionId=...
+app.get('/api/expediente/:cid/vinculados', async (req, res) => {
+  const { cid } = req.params;
+  const s = requerirSesion(req, res);
+  if (!s) return;
+
+  const cacheado = obtenerVinculados(req.query.sessionId, cid);
+  if (cacheado) return res.json({ ok: true, cid, ...cacheado, desdeCache: true });
+
+  // La pagina puede haber quedado en otro lado (historicas, otro
+  // expediente): se vuelve al principal antes de tocar la solapa.
+  await s.page.goto(`${s.scwBase}/scw/expediente.seam?cid=${cid}`, { waitUntil: 'networkidle' }).catch(() => {});
+  const resultado = await leerVinculados(s.page);
+  guardarVinculados(req.query.sessionId, cid, resultado);
+
+  registrar({
+    operacion: 'leer-vinculados',
+    cid,
+    ip: ipDe(req),
+    detalle: { cantidad: resultado.vinculados.length, estado: resultado.estado },
+  });
+  res.json({ ok: true, cid, ...resultado });
+});
+
+// POST /api/expediente/:cid/abrir-vinculado  { sessionId, expediente }
+// Abre el incidente y devuelve su cid, que desde ahi se usa como cualquier
+// otro expediente: mismo lector, mismas descargas.
+app.post('/api/expediente/:cid/abrir-vinculado', async (req, res) => {
+  const { cid } = req.params;
+  const { sessionId, expediente } = req.body || {};
+  if (!expediente) return res.status(400).json({ ok: false, error: 'Falta el expediente vinculado.' });
+
+  const s = obtenerSesion(sessionId);
+  if (!s) return res.status(410).json({ ok: false, error: 'La sesion expiro. Volve a buscar el expediente.' });
+
+  // Asegurar que la lista este visible antes de intentar abrir una fila.
+  await s.page.goto(`${s.scwBase}/scw/expediente.seam?cid=${cid}`, { waitUntil: 'networkidle' }).catch(() => {});
+  await leerVinculados(s.page);
+
+  const { cid: cidVinculado } = await abrirVinculado(s.page, expediente);
+  registrar({
+    operacion: 'abrir-vinculado',
+    expediente,
+    cid: cidVinculado,
+    ip: ipDe(req),
+    detalle: { desdeCid: cid },
+  });
+  res.json({ ok: true, cid: cidVinculado, expediente });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
