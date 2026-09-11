@@ -107,19 +107,27 @@ export async function leerVinculados(page) {
  * @param {string} expediente  ej. 'CIV 013719/2023/1'
  */
 export async function abrirVinculado(page, expediente) {
-  const clickeado = await page.evaluate((buscado) => {
-    const normalizar = (s) => (s || '').replace(/\s+/g, ' ').trim().toUpperCase();
-    const objetivo = normalizar(buscado);
+  const clave = claveExpediente(expediente);
+  if (!clave) throw new Error(`No se entiende el expediente "${expediente}".`);
+
+  const clickeado = await page.evaluate(({ clave }) => {
+    // El SCW muestra los números con ceros a la izquierda ("CIV
+    // 013719/2023/1") pero la gente los escribe sin ellos ("13719"). Se
+    // comparan como números, no como texto, para que coincidan igual.
+    function claveDe(texto) {
+      const m = (texto || '').match(/([A-Z]{2,4})\s*0*(\d+)\/(\d{4})\/(\d+)/i);
+      if (!m) return null;
+      return `${m[1].toUpperCase()}|${Number(m[2])}|${m[3]}|${Number(m[4])}`;
+    }
 
     for (const fila of Array.from(document.querySelectorAll('tr'))) {
-      if (!normalizar(fila.innerText).includes(objetivo)) continue;
-      // El control para abrirlo puede ser un botón, un enlace o una imagen
-      // dentro de la fila: se prueba con el primero que exista.
+      const texto = fila.innerText || '';
+      if (claveDe(texto) !== clave) continue;
       const control = fila.querySelector('a[onclick], button, input[type="submit"], input[type="image"], a');
       if (control) { control.click(); return true; }
     }
     return false;
-  }, expediente);
+  }, { clave });
 
   if (!clickeado) throw new Error(`No se encontró el vinculado ${expediente} en la lista.`);
 
@@ -129,13 +137,30 @@ export async function abrirVinculado(page, expediente) {
     const m = page.url().match(/cid=(\d+)/);
     const texto = await page.evaluate(() => (document.body && document.body.innerText) || '').catch(() => '');
     if (m && /car[aá]tula/i.test(texto) && texto.length > 200) {
-      // Confirmar que efectivamente estamos en el incidente y no seguimos
-      // en el principal: el número del expediente debe incluir la barra
-      // final del incidente.
-      const esElIncidente = texto.toUpperCase().includes(expediente.toUpperCase().replace(/\s+/g, ' '));
-      if (esElIncidente) return { cid: m[1] };
+      // Confirmar que estamos en el incidente y no seguimos en el
+      // principal: comparando por número, no por texto literal.
+      if (claveExpediente(texto) === clave || textoContieneClave(texto, clave)) {
+        return { cid: m[1] };
+      }
     }
     await page.waitForTimeout(400);
   }
   throw new Error(`No se pudo abrir el vinculado ${expediente} (el sitio no respondió a tiempo).`);
+}
+
+/** Normaliza "CIV 013719/2023/1" y "CIV 13719/2023/1" a la misma clave. */
+function claveExpediente(texto) {
+  const m = (texto || '').match(/([A-Z]{2,4})\s*0*(\d+)\/(\d{4})\/(\d+)/i);
+  if (!m) return null;
+  return `${m[1].toUpperCase()}|${Number(m[2])}|${m[3]}|${Number(m[4])}`;
+}
+
+/** Busca la clave en cualquier parte de un texto largo (toda la página). */
+function textoContieneClave(texto, clave) {
+  const re = /([A-Z]{2,4})\s*0*(\d+)\/(\d{4})\/(\d+)/gi;
+  let m;
+  while ((m = re.exec(texto)) !== null) {
+    if (`${m[1].toUpperCase()}|${Number(m[2])}|${m[3]}|${Number(m[4])}` === clave) return true;
+  }
+  return false;
 }

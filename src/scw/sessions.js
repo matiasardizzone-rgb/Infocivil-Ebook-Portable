@@ -78,6 +78,25 @@ export function obtenerVinculados(id, cid) {
   return null;
 }
 
+// Cada sesión tiene UNA sola pestaña de navegador, así que dos operaciones
+// simultáneas sobre la misma sesión se pisan entre sí: una navegación
+// cancela a la otra y Playwright devuelve ERR_ABORTED. Pasa en el uso
+// normal, por ejemplo cuando la pantalla del expediente pide actuaciones y
+// vinculados a la vez.
+//
+// Esto encola las operaciones de una misma sesión: se ejecutan de a una, en
+// orden de llegada. Sesiones distintas siguen corriendo en paralelo (el
+// límite global lo pone la concurrencia de browser.js).
+export function enTurno(id, tarea) {
+  const s = sesiones.get(id);
+  if (!s) return tarea();
+  const anterior = s.cola || Promise.resolve();
+  // El catch evita que una tarea fallida deje la cola rota para siempre.
+  const propia = anterior.catch(() => {}).then(() => tarea());
+  s.cola = propia.catch(() => {});
+  return propia;
+}
+
 export async function cerrarSesion(id) {
   const s = sesiones.get(id);
   if (!s) return;

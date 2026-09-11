@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { cerrarBrowser } from './scw/browser.js';
-import { crearSesion, obtenerSesion, asociarCid, cerrarSesion, cerrarTodasLasSesiones, guardarScrape, obtenerScrape, guardarVinculados, obtenerVinculados } from './scw/sessions.js';
+import { crearSesion, obtenerSesion, asociarCid, cerrarSesion, cerrarTodasLasSesiones, guardarScrape, obtenerScrape, guardarVinculados, obtenerVinculados, enTurno } from './scw/sessions.js';
 import { leerVinculados, abrirVinculado } from './scw/vinculados.js';
 import { buscarExpediente } from './scw/buscarExpediente.js';
 import { scrapeActuaciones } from './scw/scrapeActuaciones.js';
@@ -125,7 +125,7 @@ app.get('/api/expediente/:cid/actuaciones', async (req, res) => {
     return res.json({ ok: true, cid, ...cacheado, desdeCache: true });
   }
 
-  const resultado = await scrapeActuaciones(s.page, s.scwBase, cid);
+  const resultado = await enTurno(req.query.sessionId, () => scrapeActuaciones(s.page, s.scwBase, cid));
   guardarScrape(req.query.sessionId, cid, resultado);
   registrar({
     operacion: 'leer-actuaciones',
@@ -158,7 +158,7 @@ app.get('/api/expediente/:cid/descargar/:formato', async (req, res) => {
   // y el segundo recorrido traía apenas un puñado de actuaciones.
   let resultado = obtenerScrape(req.query.sessionId, cid);
   if (!resultado) {
-    resultado = await scrapeActuaciones(s.page, s.scwBase, cid);
+    resultado = await enTurno(req.query.sessionId, () => scrapeActuaciones(s.page, s.scwBase, cid));
     guardarScrape(req.query.sessionId, cid, resultado);
   }
   const { actuaciones, paginacionIncompleta, caratula } = resultado;
@@ -168,7 +168,7 @@ app.get('/api/expediente/:cid/descargar/:formato', async (req, res) => {
 
   const tituloExpediente = caratula || `Expediente ${cid}`;
   const nombreBase = sanitizarNombre(tituloExpediente).slice(0, 60);
-  const conBytes = await descargarPdfs(s.page, actuaciones);
+  const conBytes = await enTurno(req.query.sessionId, () => descargarPdfs(s.page, actuaciones));
   const bajados = conBytes.filter(a => a.bytes).length;
 
   registrar({
@@ -240,7 +240,7 @@ app.get('/api/expediente/:cid/documento/:indice', async (req, res) => {
     return res.status(404).json({ ok: false, error: `No existe la actuación ${indice}.` });
   }
 
-  const [conBytes] = await descargarPdfs(s.page, [actuacion], 1);
+  const [conBytes] = await enTurno(req.query.sessionId, () => descargarPdfs(s.page, [actuacion], 1));
   if (!conBytes.bytes) {
     return res.status(502).json({
       ok: false,
@@ -282,8 +282,10 @@ app.get('/api/expediente/:cid/vinculados', async (req, res) => {
 
   // La pagina puede haber quedado en otro lado (historicas, otro
   // expediente): se vuelve al principal antes de tocar la solapa.
-  await s.page.goto(`${s.scwBase}/scw/expediente.seam?cid=${cid}`, { waitUntil: 'networkidle' }).catch(() => {});
-  const resultado = await leerVinculados(s.page);
+  const resultado = await enTurno(req.query.sessionId, async () => {
+    await s.page.goto(`${s.scwBase}/scw/expediente.seam?cid=${cid}`, { waitUntil: 'networkidle' }).catch(() => {});
+    return leerVinculados(s.page);
+  });
   guardarVinculados(req.query.sessionId, cid, resultado);
 
   registrar({
@@ -307,10 +309,11 @@ app.post('/api/expediente/:cid/abrir-vinculado', async (req, res) => {
   if (!s) return res.status(410).json({ ok: false, error: 'La sesion expiro. Volve a buscar el expediente.' });
 
   // Asegurar que la lista este visible antes de intentar abrir una fila.
-  await s.page.goto(`${s.scwBase}/scw/expediente.seam?cid=${cid}`, { waitUntil: 'networkidle' }).catch(() => {});
-  await leerVinculados(s.page);
-
-  const { cid: cidVinculado } = await abrirVinculado(s.page, expediente);
+  const { cid: cidVinculado } = await enTurno(sessionId, async () => {
+    await s.page.goto(`${s.scwBase}/scw/expediente.seam?cid=${cid}`, { waitUntil: 'networkidle' }).catch(() => {});
+    await leerVinculados(s.page);
+    return abrirVinculado(s.page, expediente);
+  });
   registrar({
     operacion: 'abrir-vinculado',
     expediente,

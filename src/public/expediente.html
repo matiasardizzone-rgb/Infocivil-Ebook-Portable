@@ -149,6 +149,12 @@ async function cargarExpediente() {
     $('cargando').hidden = true;
     $('contenido').hidden = false;
     actualizarBotonGuardar();
+
+    // Los vinculados se piden DESPUÉS de las actuaciones, no en paralelo:
+    // ambas operaciones usan la misma pestaña del navegador del lado del
+    // servidor, y lanzarlas juntas hacía que una navegación cancelara a la
+    // otra (ERR_ABORTED).
+    cargarVinculados();
   } catch (e) {
     $('cargando').textContent = e.message + ' — Probá hacer una nueva consulta.';
   }
@@ -218,7 +224,6 @@ function escapar(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-cargarVinculados();
 
 // Las descargas se disparan navegando a la URL del endpoint: el servidor
 // responde con Content-Disposition: attachment, así que el navegador la
