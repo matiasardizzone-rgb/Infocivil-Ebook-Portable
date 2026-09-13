@@ -74,7 +74,7 @@ function pintar() {
       <div class="guardado-datos">
         <div class="guardado-id">${e.jurisdiccion} ${e.numero}/${e.anio}</div>
         <div class="guardado-caratula">${e.caratula || '(sin carátula registrada)'}</div>
-        <div class="guardado-meta">${e.cantidadActuaciones} actuaciones al ${fechaCorta(e.guardadoEl)}</div>
+        <div class="guardado-meta">${e.cantidadActuaciones} actuaciones · visto por última vez el ${fechaCorta(e.vistoEl || e.guardadoEl)}</div>
       </div>
       <div class="guardado-acciones">
         <button class="boton-secundario" data-abrir="${e.clave}">Abrir</button>

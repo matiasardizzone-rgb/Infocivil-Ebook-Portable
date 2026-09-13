@@ -289,3 +289,16 @@ select.control { margin-bottom: 16px; cursor: pointer; }
   margin: -14px 0 18px; line-height: 1.45;
 }
 .vinculado-meta { font-size: 11.5px; color: var(--texto-tenue); margin-top: 3px; }
+
+/* Aviso de actuaciones nuevas desde la última visita */
+.novedad {
+  background: #e8f8ee;
+  border: 1px solid #b8e0c8;
+  border-left: 3px solid var(--ok);
+  color: #10603a;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}

@@ -149,6 +149,7 @@ async function cargarExpediente() {
     $('cargando').hidden = true;
     $('contenido').hidden = false;
     actualizarBotonGuardar();
+    avisarNovedades(d.actuaciones.length);
 
     // Los vinculados se piden DESPUÉS de las actuaciones, no en paralelo:
     // ambas operaciones usan la misma pestaña del navegador del lado del
@@ -160,6 +161,36 @@ async function cargarExpediente() {
   }
 }
 cargarExpediente();
+
+// ─── Novedades desde la última visita ───────────────────────────────
+// Los expedientes guardados anotan cuántas actuaciones tenían la última vez
+// que se los vio. Al volver a abrirlos se compara contra la cantidad actual
+// y se avisa si hubo movimiento. La marca se actualiza en el momento, así
+// el aviso no se repite en la visita siguiente.
+function avisarNovedades(cantidadActual) {
+  const lista = leerGuardados();
+  const guardado = lista.find(e => e.clave === claveExpediente());
+  if (!guardado) return; // no está en Mis expedientes: nada que comparar
+
+  const previas = Number(guardado.cantidadActuaciones) || 0;
+  const nuevas = cantidadActual - previas;
+
+  if (nuevas > 0) {
+    const cuando = guardado.vistoEl || guardado.guardadoEl;
+    const desde = cuando ? ' desde tu última visita del ' + new Date(cuando).toLocaleDateString('es-AR') : '';
+    const caja = document.createElement('div');
+    caja.className = 'novedad';
+    caja.textContent = nuevas === 1
+      ? `Hay 1 actuación nueva${desde}.`
+      : `Hay ${nuevas} actuaciones nuevas${desde}.`;
+    $('avisos').prepend(caja);
+  }
+
+  // Se deja registrado lo visto ahora, aunque no haya habido cambios.
+  guardado.cantidadActuaciones = cantidadActual;
+  guardado.vistoEl = new Date().toISOString();
+  escribirGuardados(lista);
+}
 
 // ─── Incidentes y vinculados ────────────────────────────────────────
 // Se piden aparte de las actuaciones porque viven en otra solapa del SCW
@@ -291,6 +322,8 @@ $('btnGuardar').addEventListener('click', () => {
       caratula: (datosExpediente && datosExpediente.caratula) || '',
       cantidadActuaciones: (datosExpediente && datosExpediente.actuaciones.length) || 0,
       guardadoEl: new Date().toISOString(),
+      // Punto de partida para comparar novedades en la próxima visita.
+      vistoEl: new Date().toISOString(),
     });
     escribirGuardados(lista);
     mostrarEstado('Guardado en Mis expedientes (solo en este navegador).', 'ok');
