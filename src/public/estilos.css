@@ -288,3 +288,4 @@ select.control { margin-bottom: 16px; cursor: pointer; }
   font-size: 11.5px; color: var(--texto-tenue);
   margin: -14px 0 18px; line-height: 1.45;
 }
+.vinculado-meta { font-size: 11.5px; color: var(--texto-tenue); margin-top: 3px; }

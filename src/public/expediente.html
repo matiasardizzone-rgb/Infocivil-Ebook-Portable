@@ -176,6 +176,7 @@ async function cargarVinculados() {
         <div class="vinculado-datos">
           <div class="vinculado-id">${escapar(v.expediente)}</div>
           <div class="vinculado-caratula">${escapar(v.caratula || '')}</div>
+          <div class="vinculado-meta">${escapar([v.dependencia, v.situacion, v.ultimaActuacion ? 'últ. act. ' + v.ultimaActuacion : ''].filter(Boolean).join(' · '))}</div>
         </div>
         <button class="boton-secundario" data-abrir="${escapar(v.expediente)}">Abrir</button>
       </div>`).join('');
