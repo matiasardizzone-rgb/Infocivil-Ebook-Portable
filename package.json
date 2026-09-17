@@ -1,18 +1,17 @@
-{
-  "name": "infocivil-ebook",
-  "version": "0.1.0",
-  "description": "Consulta y lectura de expedientes del fuero Civil (PJN) como ebook — búsqueda pública por jurisdicción/número/año, descarga en ZIP o PDF unificado, y lector tipo libro.",
-  "type": "module",
-  "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
-  },
-  "dependencies": {
-    "express": "^5.2.1",
-    "pdf-lib": "^1.17.1",
-    "playwright": "^1.63.0"
-  },
-  "license": "UNLICENSED",
-  "private": true
+{ 
+  "name": "infocivil-ebook", 
+  "version": "0.1.0", 
+  "description": "Infocivil Ebook Portable", 
+  "main": "src/server.js", 
+  "scripts": { 
+    "start": "node src/server.js", 
+    "dev": "node --watch src/server.js" 
+  }, 
+  "dependencies": { 
+    "express": "^5.2.1", 
+    "pdf-lib": "^1.17.1", 
+    "playwright-core": "^1.40.0" 
+  }, 
+  "license": "UNLICENSED", 
+  "private": true 
 }

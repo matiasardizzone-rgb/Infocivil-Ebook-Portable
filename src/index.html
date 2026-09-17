@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Infocivil · Descargador Portable</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root { --azul: #0b3d91; --azul-claro: #1e5bbf; --gris: #f4f6fa; }
+    * { box-sizing: border-box; }
+    body { margin:0; font: 14px/1.45 system-ui, Segoe UI, Roboto, sans-serif;
+           background: var(--gris); color:#222; }
+    header { background: var(--azul); color:#fff; padding: 14px 24px;
+             display:flex; align-items:center; justify-content:space-between; }
+    header h1 { margin:0; font-size:18px; font-weight:600; }
+    header small { opacity:.8; }
+    main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#fff; border-radius:8px; padding:20px;
+            box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:20px; }
+    .card h2 { margin:0 0 12px; font-size:16px; color:var(--azul); }
+    form { display:grid; grid-template-columns: 2fr 2fr 1fr auto; gap:8px; }
+    input, select { padding:8px 10px; border:1px solid #ccd; border-radius:6px; font:inherit; }
+    button { background: var(--azul-claro); color:#fff; border:0; padding:8px 16px;
+             border-radius:6px; cursor:pointer; font-weight:600; }
+    button:hover { background: var(--azul); }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .actions { display:flex; gap:6px; }
+    .actions a { text-decoration:none; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; font-size:13px; }
+    th { color:#555; font-weight:600; }
+    .status { padding:8px 12px; border-radius:6px; margin-top:10px; display:none; }
+    .status.error { background:#fde7e7; color:#a00; display:block; }
+    .status.ok { background:#e4f6e7; color:#063; display:block; }
+    .empty { color:#888; font-style:italic; padding:12px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Infocivil · Descargador Portable</h1>
+    <small>v<span id="version">…</span> · 127.0.0.1:3301</small>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Buscar expediente</h2>
+      <form id="buscar">
+        <select id="jurisdiccion" required>
+          <option value="">Jurisdicción…</option>
+          <!-- se llena desde /api/jurisdicciones -->
+        </select>
+        <input id="numero" placeholder="Número" required>
+        <input id="anio" placeholder="Año" required>
+        <button type="submit">Buscar</button>
+      </form>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>Mis Expedientes</h2>
+      <table id="lista">
+        <thead>
+          <tr><th>Expediente</th><th>Carátula</th><th>Agregado</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="empty" class="empty">Todavía no buscaste ningún expediente.</div>
+    </section>
+  </main>
+
+<script>
+const $ = s => document.querySelector(s);
+const status = (msg, type='') => {
+  const el = $('#status');
+  el.className = 'status ' + type;
+  el.textContent = msg || '';
+};
+
+async function init() {
+  const h = await fetch('/api/health').then(r=>r.json());
+  $('#version').textContent = h.version;
+
+  // Poblar jurisdicciones (si el endpoint existe; si no, queda vacío)
+  try {
+    const j = await fetch('/api/jurisdicciones').then(r=>r.json());
+    const sel = $('#jurisdiccion');
+    j.forEach(x => {
+      const o = document.createElement('option');
+      o.value = x.codigo; o.textContent = x.nombre;
+      sel.appendChild(o);
+    });
+  } catch(_) {}
+
+  await refresh();
+}
+
+async function refresh() {
+  const list = await fetch('/api/mis-expedientes').then(r=>r.json());
+  const tbody = $('#lista tbody');
+  tbody.innerHTML = '';
+  $('#empty').style.display = list.length ? 'none' : 'block';
+  for (const e of list) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${e.numero}/${e.anio} (${e.jurisdiccion})</td>
+      <td>${e.caratula || '—'}</td>
+      <td>${new Date(e.addedAt).toLocaleString('es-AR')}</td>
+      <td class="actions">
+        <a href="/api/expediente/${e.id}/descargar/zip"><button>ZIP</button></a>
+        <a href="/api/expediente/${e.id}/descargar/unificado"><button>PDF</button></a>
+        <button data-del="${e.id}" style="background:#a33">Quitar</button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('[data-del]').forEach(b =>
+    b.addEventListener('click', async () => {
+      await fetch('/api/mis-expedientes/' + b.dataset.del, { method:'DELETE' });
+      refresh();
+    })
+  );
+}
+
+$('#buscar').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  status('Buscando…');
+  try {
+    const r = await fetch('/api/buscar', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        jurisdiccion: $('#jurisdiccion').value,
+        numero: $('#numero').value.trim(),
+        anio: $('#anio').value.trim(),
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    status('Expediente encontrado: ' + (data.caratula || data.cid), 'ok');
+    await refresh();
+  } catch(e) {
+    status(e.message, 'error');
+  }
+});
+
+init();
+</script>
+</body>
+</html>

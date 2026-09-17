@@ -1,0 +1,18 @@
+{
+  "port": 3301,
+  "bind": "127.0.0.1",
+  "concurrency": 1,
+  "browserPreference": ["chrome", "msedge"],
+  "headless": true,
+  "timeouts": {
+    "navigation": 30000,
+    "download": 60000
+  },
+  "storage": {
+    "maxEntries": 500
+  },
+  "update": {
+    "checkOnStart": true,
+    "intervalHours": 24
+  }
+}
