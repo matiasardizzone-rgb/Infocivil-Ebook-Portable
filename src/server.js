@@ -9,6 +9,7 @@ const { buscarExpediente } = require('./scw/buscarExpediente');
 const { scrapeActuaciones } = require('./scw/scrapeActuaciones');
 const { descargarPdfs } = require('./scw/descargarActuaciones');
 const { prepararLectura, slugDe } = require('./scw/prepararLectura');
+const { leerVinculados, abrirVinculado } = require('./scw/vinculados');
 const { buildZip } = require('./lib/zip');
 const { generarPdfUnificado } = require('./lib/unificador');
 
@@ -164,6 +165,53 @@ app.get('/api/expediente/:cid/documento/:n', async (req, res) => {
   } catch (e) {
     console.error('[/api/documento] Error:', e.message);
     res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Vinculados/incidentes: viven en otra solapa del expediente principal.
+app.get('/api/expediente/:cid/vinculados', async (req, res) => {
+  try {
+    const data = await withBrowser(async (page, scwBase) => {
+      await page.goto(`${scwBase}/scw/expediente.seam?cid=${req.params.cid}`, { waitUntil: 'networkidle' });
+      return leerVinculados(page);
+    });
+    res.json({ ok: true, ...data });
+  } catch (e) {
+    console.error('[/api/vinculados] Error:', e.message);
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+// Abre un incidente/vinculado y lo deja disponible como si fuera el
+// expediente principal (mismo cid-flow, misma lectura, misma descarga).
+app.post('/api/expediente/:cid/abrir-vinculado', async (req, res) => {
+  try {
+    const { expediente } = req.body || {};
+    if (!expediente) return res.status(400).json({ ok: false, error: 'Falta indicar qué expediente abrir.' });
+
+    const result = await withBrowser(async (page, scwBase) => {
+      await page.goto(`${scwBase}/scw/expediente.seam?cid=${req.params.cid}`, { waitUntil: 'networkidle' });
+      return abrirVinculado(page, expediente);
+    });
+
+    // Lo guardamos en Mis Expedientes con sus propios datos (no los del
+    // principal), parseados del identificador tipo "CIV 013719/2023/1",
+    // así después /actuaciones, /leer y /descargar lo encuentran por cid.
+    const m = expediente.match(/([A-Za-z]{2,4})\s*0*(\d+)\/(\d{4})\/(\d+)/);
+    if (m) {
+      await storage.add({
+        id: result.cid,
+        jurisdiccion: m[1].toUpperCase(),
+        numero: m[2],
+        anio: m[3],
+        caratula: null,
+      });
+    }
+
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('[/api/abrir-vinculado] Error:', e.message);
+    res.status(400).json({ ok: false, error: e.message });
   }
 });
 
