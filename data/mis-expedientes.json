@@ -1,5 +1,189 @@
 [
   {
+    "id": "1231623",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": null,
+    "addedAt": "2026-09-17T19:33:59.876Z"
+  },
+  {
+    "id": "1206309",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": null,
+    "addedAt": "2026-09-17T19:33:48.943Z"
+  },
+  {
+    "id": "1222378",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": null,
+    "addedAt": "2026-09-17T19:31:59.871Z"
+  },
+  {
+    "id": "1212112",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": null,
+    "addedAt": "2026-09-17T19:31:49.552Z"
+  },
+  {
+    "id": "1222337",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T19:31:42.159Z"
+  },
+  {
+    "id": "1222256",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": null,
+    "addedAt": "2026-09-17T19:31:06.463Z"
+  },
+  {
+    "id": "1150405",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T16:27:59.181Z"
+  },
+  {
+    "id": "1150405",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T16:24:51.831Z"
+  },
+  {
+    "id": "1150405",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T16:24:40.257Z"
+  },
+  {
+    "id": "1150405",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T16:24:33.811Z"
+  },
+  {
+    "id": "1132467",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T16:04:34.989Z"
+  },
+  {
+    "id": "1116702",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T16:03:52.304Z"
+  },
+  {
+    "id": "1144658",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:57:57.554Z"
+  },
+  {
+    "id": "1122424",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:48:50.826Z"
+  },
+  {
+    "id": "1139884",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:48:15.822Z"
+  },
+  {
+    "id": "1120642",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:45:43.972Z"
+  },
+  {
+    "id": "1099960",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:32:29.127Z"
+  },
+  {
+    "id": "1098391",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:29:54.919Z"
+  },
+  {
+    "id": "1093536",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:21:42.049Z"
+  },
+  {
+    "id": "1091773",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:18:47.510Z"
+  },
+  {
+    "id": "1122304",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:18:37.926Z"
+  },
+  {
+    "id": "1104382",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:18:12.358Z"
+  },
+  {
+    "id": "1121345",
+    "jurisdiccion": "CIV",
+    "numero": "2425",
+    "anio": "2026",
+    "caratula": "ALONSO, WANDA LUCIA Y OTROS C/ MEYER, CESAR AUGUSTO Y OTRO S/DAÑOS Y PERJUICIOS(ACC.TRAN. C/LES. O MUERTE)",
+    "addedAt": "2026-09-17T15:17:17.350Z"
+  },
+  {
     "id": "1095921",
     "jurisdiccion": "CIV",
     "numero": "2425",
